@@ -1,5 +1,6 @@
 package templates
 
+// BidsResults renders the result content of BIDS validations.
 const BidsResults = `
 {{define "content"}}
 	<div class="repository file list">
