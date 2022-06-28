@@ -1,6 +1,8 @@
 [![Build](https://github.com/g-node/gin-valid/workflows/run-build/badge.svg?branch=master)](https://github.com/G-Node/gin-valid/actions)
-[![Docker Automated build](https://img.shields.io/docker/automated/gnode/gin-valid.svg)](https://hub.docker.com/r/gnode/gin-valid)
 [![Coverage Status](https://coveralls.io/repos/github/G-Node/gin-valid/badge.svg?branch=master)](https://coveralls.io/github/G-Node/gin-valid?branch=master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/g-node/gin-valid)](https://goreportcard.com/report/github.com/g-node/gin-valid)
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/g-node/gin-valid)](https://pkg.go.dev/github.com/G-Node/gin-valid)
+[![Docker Automated build](https://img.shields.io/docker/automated/gnode/gin-valid.svg)](https://hub.docker.com/r/gnode/gin-valid)
 
 # gin-valid
 
