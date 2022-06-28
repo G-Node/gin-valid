@@ -30,13 +30,13 @@ type Denotations struct {
 	ValidationConfigFile string `json:"valcfgfile"`
 }
 
+// GINAddresses specify http and ssh access to the companion GIN service.
 type GINAddresses struct {
 	WebURL string `json:"weburl"`
 	GitURL string `json:"giturl"`
 }
 
 // Settings provide the default server settings.
-// "Validators" currently only supports "BIDS".
 type Settings struct {
 	RootURL     string   `json:"rooturl"`
 	Port        string   `json:"port"`
