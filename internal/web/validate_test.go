@@ -22,7 +22,8 @@ import (
 
 var username = "valid-testing"
 var reponame = "Testing"
-var token = "4c82d07cccf103e071ad9ee8aec82c34d7003c6c"
+
+// var token = "4c82d07cccf103e071ad9ee8aec82c34d7003c6c"
 
 func TestValiateBadConfig(t *testing.T) {
 	valcfg, err := handleValidationConfig("wtf")
