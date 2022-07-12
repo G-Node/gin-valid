@@ -24,7 +24,7 @@ var giturl = "git@gin.dev.g-node.org:22"
 func TestUserCookieExp(t *testing.T) {
 	res := cookieExp()
 	if reflect.TypeOf(res).String() != "time.Time" {
-		t.Fatalf(`cookieExp() = %q`, res)
+		t.Fatalf("cookieExp() = %q", res)
 	}
 }
 
@@ -35,7 +35,7 @@ func TestUserDoLoginFailed(t *testing.T) {
 	config.Set(srvcfg)
 	sessionid, err := doLogin("wtf", "wtf")
 	if sessionid != "" || err == nil {
-		t.Fatalf(`doLogin(username, password) = %q, %v`, sessionid, err)
+		t.Fatalf("doLogin(username, password) = %q, %s", sessionid, err.Error())
 	}
 }
 
@@ -43,7 +43,7 @@ func TestGetLoggedUserNameEmpty(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/login", nil)
 	q := getLoggedUserName(r)
 	if q != "" {
-		t.Fatalf("getLoggedUserName(r *http.Request) = \"%v\"", q)
+		t.Fatalf("getLoggedUserName(r *http.Request) = %q", q)
 	}
 }
 
@@ -59,7 +59,7 @@ func TestGetLoggedUserNameSessionDoesNotExists(t *testing.T) {
 	r := &http.Request{Header: http.Header{"Cookie": []string{cookie.String()}}}
 	q := getLoggedUserName(r)
 	if q != "" {
-		t.Fatalf("getLoggedUserName(r *http.Request) = \"%v\"", q)
+		t.Fatalf("getLoggedUserName(r *http.Request) = %q", q)
 	}
 }
 
@@ -83,19 +83,20 @@ func TestGetLoggedUserNameOK(t *testing.T) {
 	}
 	err := saveToken(ut)
 	if err != nil {
-		t.Fatalf("getLoggedUserName(r *http.Request) = \"%v\"", err)
+		t.Fatalf("getLoggedUserName(r *http.Request) = %s", err.Error())
 	}
 	err = linkToSession("wtf_user", "wtfsession")
 	if err != nil {
-		t.Fatalf("getLoggedUserName(r *http.Request) = \"%v\"", err)
+		t.Fatalf("getLoggedUserName(r *http.Request) = %s", err.Error())
 	}
 	q := getLoggedUserName(r)
 	if q != "wtf_user" {
-		t.Fatalf("getLoggedUserName(r *http.Request) = \"%v\"", q)
+		t.Fatalf("getLoggedUserName(r *http.Request) = %q", q)
 	}
 }
 
-/*func TestUserDoLoginOK(t *testing.T) {
+/*
+func TestUserDoLoginOK(t *testing.T) {
 	tokens, _ := ioutil.TempDir("", "tokens")
 	srvcfg := config.Read()
 	srvcfg.GINAddresses.WebURL = weburl
@@ -106,11 +107,13 @@ func TestGetLoggedUserNameOK(t *testing.T) {
 	os.MkdirAll(tokendir, 0755)
 	sessionid, err := doLogin(username, password)
 	if sessionid == "" || err != nil {
-		t.Fatalf(`doLogin(username, password) = %q, %v`, sessionid, err)
+		t.Fatalf("doLogin(username, password) = %q, %s", sessionid, err.Error())
 	}
-}*/
+}
+*/
 
-/*func TestUserLoginPost(t *testing.T) {
+/*
+func TestUserLoginPost(t *testing.T) {
 	tokens, _ := ioutil.TempDir("", "tokens")
 	srvcfg := config.Read()
 	srvcfg.GINAddresses.WebURL = weburl
@@ -130,7 +133,7 @@ func TestGetLoggedUserNameOK(t *testing.T) {
 	router.ServeHTTP(w, r)
 	status := w.Code
 	if status != http.StatusFound {
-		t.Fatalf(`LoginPost(w http.ResponseWriter, r *http.Request) status code = %v`, status)
+		t.Fatalf("LoginPost(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }*/
 
@@ -143,7 +146,7 @@ func TestUserLoginGet(t *testing.T) {
 	router.ServeHTTP(w, r)
 	status := w.Code
 	if status != http.StatusOK {
-		t.Fatalf(`LoginGet(w http.ResponseWriter, r *http.Request) status code = %v`, status)
+		t.Fatalf("LoginGet(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }
 
@@ -159,7 +162,7 @@ func TestUserLoginGetBadLoginPage(t *testing.T) {
 	templates.Login = original
 	status := w.Code
 	if status != http.StatusInternalServerError {
-		t.Fatalf(`LoginGet(w http.ResponseWriter, r *http.Request) status code = %v`, status)
+		t.Fatalf("LoginGet(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }
 
@@ -175,6 +178,6 @@ func TestUserLoginGetBadLayout(t *testing.T) {
 	templates.Layout = original
 	status := w.Code
 	if status != http.StatusInternalServerError {
-		t.Fatalf(`LoginGet(w http.ResponseWriter, r *http.Request) status code = %v`, status)
+		t.Fatalf("LoginGet(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }
