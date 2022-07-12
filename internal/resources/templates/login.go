@@ -1,6 +1,6 @@
 package templates
 
-// TODO: add csrf thingie
+// Login renders the page to log in with the companion GIN service.
 var Login = `
 {{ define "content" }}
 			<div class="user signin">

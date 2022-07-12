@@ -1,6 +1,7 @@
 package templates
 
-// TODO: Stable access order of Hooks map
+// RepoList renders all repositories of a logged in user available on the
+// companion GIN service.
 const RepoList = `
 {{define "content"}}
 
@@ -54,6 +55,9 @@ const RepoList = `
 </div>
 	{{end}}
 `
+
+// RepoPage lists all validation options for the repository of a logged in User
+// and provides access to any validation results and webhook administration.
 const RepoPage = `
 {{define "content"}}
 	<div class="repository file list">

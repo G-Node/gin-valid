@@ -99,7 +99,7 @@ func createValidHook(repopath string, validator string, usertoken gweb.UserToken
 	u, err := url.Parse(cfg.Settings.RootURL)
 	if err != nil {
 		log.Write("[error] failed to parse url: %s", err.Error())
-		return fmt.Errorf("Hook creation failed: %s", err.Error())
+		return fmt.Errorf("hook creation failed: %s", err.Error())
 	}
 	u.Path = path.Join(u.Path, "validate", validator, repopath)
 	hookconfig["url"] = u.String()
@@ -114,13 +114,13 @@ func createValidHook(repopath string, validator string, usertoken gweb.UserToken
 	res, err := client.Post(fmt.Sprintf("/api/v1/repos/%s/hooks", repopath), data)
 	if err != nil {
 		log.Write("[error] failed to post: %s", err.Error())
-		return fmt.Errorf("Hook creation failed: %s", err.Error())
+		return fmt.Errorf("hook creation failed: %s", err.Error())
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusCreated {
 		log.Write("[error] non-OK response: %s", res.Status)
-		return fmt.Errorf("Hook creation failed: %s", res.Status)
+		return fmt.Errorf("hook creation failed: %s", res.Status)
 	}
 
 	// link user token to repository name so we can use it for validation

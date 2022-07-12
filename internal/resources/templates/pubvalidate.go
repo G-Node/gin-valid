@@ -1,5 +1,8 @@
 package templates
 
+// PubValidate renders the public validation page. Validations for public repositories
+// on the companion GIN service can be requested via this page.
+// Hardcoded validators support BIDS, NIX and odML validation.
 var PubValidate = `
 {{ define "content" }}
 	<div class="user signin">

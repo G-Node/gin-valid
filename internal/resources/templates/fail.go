@@ -1,5 +1,6 @@
 package templates
 
+// Fail renders the general failure page and user feedback.
 var Fail = `
 {{ define "content" }}
 

@@ -1,7 +1,5 @@
 package templates
 
-// TODO: Switch Login || Logout
-
 // Layout is the main site template. It includes the header and footer and
 // embeds the content for every other page.
 var Layout = `
