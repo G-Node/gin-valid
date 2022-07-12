@@ -50,12 +50,13 @@ func TestGetLoggedUserNameEmpty(t *testing.T) {
 func TestGetLoggedUserNameSessionDoesNotExists(t *testing.T) {
 	srvcfg := config.Read()
 	w := httptest.NewRecorder()
-	http.SetCookie(w, &http.Cookie{
+	cookie := &http.Cookie{
 		Name:    srvcfg.Settings.CookieName,
 		Value:   "wtfsession",
 		Expires: cookieExp(),
-	})
-	r := &http.Request{Header: http.Header{"Cookie": w.HeaderMap["Set-Cookie"]}}
+	}
+	http.SetCookie(w, cookie)
+	r := &http.Request{Header: http.Header{"Cookie": []string{cookie.String()}}}
 	q := getLoggedUserName(r)
 	if q != "" {
 		t.Fatalf("getLoggedUserName(r *http.Request) = \"%v\"", q)
@@ -69,12 +70,13 @@ func TestGetLoggedUserNameOK(t *testing.T) {
 	config.Set(srvcfg)
 	os.MkdirAll(filepath.Join(tokens, "by-sessionid"), 0755)
 	w := httptest.NewRecorder()
-	http.SetCookie(w, &http.Cookie{
+	cookie := &http.Cookie{
 		Name:    srvcfg.Settings.CookieName,
 		Value:   "wtfsession",
 		Expires: cookieExp(),
-	})
-	r := &http.Request{Header: http.Header{"Cookie": w.HeaderMap["Set-Cookie"]}}
+	}
+	http.SetCookie(w, cookie)
+	r := &http.Request{Header: http.Header{"Cookie": []string{cookie.String()}}}
 	ut := gweb.UserToken{
 		Username: "wtf_user",
 		Token:    "wtf_token",
