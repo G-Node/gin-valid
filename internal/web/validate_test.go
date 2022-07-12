@@ -80,10 +80,10 @@ func TestValidateBIDSOK(t *testing.T) {
 	resultfldr, _ := ioutil.TempDir("", "results")
 	tempdataset, _ := ioutil.TempDir("", "tempdataset")
 	f, err := os.Create(filepath.Join(tempdataset, "ginvalidation.yaml"))
-	defer f.Close()
 	if err != nil {
-		t.Fatalf(`validateBIDS(valroot, resdir string) = %v`, err)
+		t.Fatalf("Could not create yaml file: %s", err.Error())
 	}
+	defer f.Close()
 	_, err = f.WriteString("bidsconfig:\n  bidsroot: \"bids_example\"")
 	if err != nil {
 		t.Fatalf(`validateBIDS(valroot, resdir string) = %v`, err)
