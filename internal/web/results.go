@@ -241,6 +241,10 @@ func renderInProgress(w http.ResponseWriter, r *http.Request, badge []byte, vali
 	resHistory := resultsHistory(validator, user, repo)
 	loggedUsername := getLoggedUserName(r)
 	year, _, _ := time.Now().Date()
+	svgload, err := ioutil.ReadFile("/assets/svgload.svg")
+	if err != nil {
+		svgload = []byte("<svg></svg>")
+	}
 	info := struct {
 		Badge       template.HTML
 		Header      string
@@ -249,7 +253,8 @@ func renderInProgress(w http.ResponseWriter, r *http.Request, badge []byte, vali
 		CurrentYear int
 		UserName    string
 		*ResultsHistoryStruct
-	}{template.HTML(badge), head, string(progressmsg), srvcfg.GINAddresses.WebURL, year, loggedUsername, &resHistory}
+		LoadingSVG template.HTML
+	}{template.HTML(badge), head, string(progressmsg), srvcfg.GINAddresses.WebURL, year, loggedUsername, &resHistory, template.HTML(svgload)}
 
 	err = tmpl.ExecuteTemplate(w, "layout", info)
 	if err != nil {
@@ -373,6 +378,7 @@ func renderNIXResults(w http.ResponseWriter, r *http.Request, badge []byte, cont
 	head := fmt.Sprintf("NIX validation for %s/%s", user, repo)
 	resHistory := resultsHistory("nix", user, repo)
 	year, _, _ := time.Now().Date()
+	svgload := []byte("")
 	loggedUsername := getLoggedUserName(r)
 	srvcfg := config.Read()
 	info := struct {
@@ -383,7 +389,8 @@ func renderNIXResults(w http.ResponseWriter, r *http.Request, badge []byte, cont
 		CurrentYear int
 		UserName    string
 		*ResultsHistoryStruct
-	}{template.HTML(badge), head, string(content), srvcfg.GINAddresses.WebURL, year, loggedUsername, &resHistory}
+		LoadingSVG template.HTML
+	}{template.HTML(badge), head, string(content), srvcfg.GINAddresses.WebURL, year, loggedUsername, &resHistory, template.HTML(svgload)}
 
 	err = tmpl.ExecuteTemplate(w, "layout", info)
 	if err != nil {
@@ -414,6 +421,7 @@ func renderODMLResults(w http.ResponseWriter, r *http.Request, badge []byte, con
 	head := fmt.Sprintf("odML validation for %s/%s", user, repo)
 	resHistory := resultsHistory("odml", user, repo)
 	loggedUsername := getLoggedUserName(r)
+	svgload := []byte("")
 	srvcfg := config.Read()
 	year, _, _ := time.Now().Date()
 	info := struct {
@@ -424,7 +432,8 @@ func renderODMLResults(w http.ResponseWriter, r *http.Request, badge []byte, con
 		CurrentYear int
 		UserName    string
 		*ResultsHistoryStruct
-	}{template.HTML(badge), head, string(content), srvcfg.GINAddresses.WebURL, year, loggedUsername, &resHistory}
+		LoadingSVG template.HTML
+	}{template.HTML(badge), head, string(content), srvcfg.GINAddresses.WebURL, year, loggedUsername, &resHistory, template.HTML(svgload)}
 
 	err = tmpl.ExecuteTemplate(w, "layout", info)
 	if err != nil {

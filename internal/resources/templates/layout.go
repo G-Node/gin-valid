@@ -13,6 +13,7 @@ var Layout = `
 		<link rel="stylesheet" href="/assets/semantic-2.3.1.min.css">
 		<link rel="stylesheet" href="/assets/gogs.css">
 		<link rel="stylesheet" href="/assets/custom.css">
+		<script src="/assets/websocket.js"></script>
 		<title>GIN Valid</title>
 		<meta name="twitter:card" content="summary" />
 		<meta name="twitter:site" content="@gnode" />

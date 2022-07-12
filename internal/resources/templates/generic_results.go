@@ -37,6 +37,11 @@ const GenericResults = `
 			{{ end }}
 		</div>
 		<div class="column" style="width:80%">
+			{{ if not (eq .LoadingSVG "") }}
+			<div class="center" style="width: 100px; height: 100px; margin: auto;">
+				{{ .LoadingSVG }}
+			</div>
+			{{ end }}
 			<hr>
 			<div>
 				<pre style="white-space: pre-wrap">{{.Content}}</pre>

@@ -228,6 +228,10 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 		Expires: time.Time{},
 		Secure:  false, // TODO: Switch when we go live
 	}
+	if conn, ok := websockets[cookie.Value]; ok {
+		conn.Close()
+		delete(websockets, cookie.Value)
+	}
 	http.SetCookie(w, &cookie)
 	http.Redirect(w, r, "/login", http.StatusFound)
 }

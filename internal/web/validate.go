@@ -27,6 +27,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 )
 
 // BidsMessages contains Errors, Warnings and Ignored messages.
@@ -55,6 +56,8 @@ type Validationcfg struct {
 		ValidateNifti bool   `yaml:"validatenifti"`
 	} `yaml:"bidsconfig"`
 }
+
+var websockets map[string]*websocket.Conn = make(map[string]*websocket.Conn)
 
 // handleValidationConfig unmarshalles a yaml config file
 // from file and returns the resulting Validationcfg struct.
@@ -341,7 +344,7 @@ func validateODML(valroot, resdir string) error {
 	return nil
 }
 
-func runValidatorBoth(validator, repopath, commit, commitname string, gcl *ginclient.Client, automatic bool) string {
+func runValidatorBoth(validator, repopath, commit, commitname string, gcl *ginclient.Client, automatic bool, r *http.Request) string {
 	respath := filepath.Join(validator, repopath, commit)
 	go func() {
 		log.ShowWrite("[Info] Running %s validation on repository %q (%s)", validator, repopath, commitname)
@@ -474,17 +477,19 @@ func runValidatorBoth(validator, repopath, commit, commitname string, gcl *gincl
 		if err != nil {
 			writeValFailure(resdir)
 		}
+		cookie, _ := r.Cookie(srvcfg.Settings.CookieName)
+		websockets[cookie.Value].WriteMessage(websocket.TextMessage, []byte("REFRESH"))
 	}()
 	return respath
 }
-func runValidator(validator, repopath, commit string, gcl *ginclient.Client) {
+func runValidator(validator, repopath, commit string, gcl *ginclient.Client, r *http.Request) {
 	automatic := true
-	runValidatorBoth(validator, repopath, commit, commit, gcl, automatic)
+	runValidatorBoth(validator, repopath, commit, commit, gcl, automatic, r)
 }
 
-func runValidatorPub(validator, repopath string, gcl *ginclient.Client) string {
+func runValidatorPub(validator, repopath string, gcl *ginclient.Client, r *http.Request) string {
 	automatic := false
-	return runValidatorBoth(validator, repopath, uuid.New().String(), "HEAD", gcl, automatic)
+	return runValidatorBoth(validator, repopath, uuid.New().String(), "HEAD", gcl, automatic, r)
 }
 
 // writeValFailure writes a badge and page content for when a hook payload is
@@ -555,6 +560,26 @@ func renderValidationForm(w http.ResponseWriter, r *http.Request, errMsg string)
 	tmpl.Execute(w, &data)
 }
 
+// Socket creates the websocket for async communication (refreshing the page)
+func Socket(w http.ResponseWriter, r *http.Request) {
+	srvcfg := config.Read()
+	cookie, err := r.Cookie(srvcfg.Settings.CookieName)
+	if err != nil {
+		fail(w, r, http.StatusUnauthorized, "You are not logged in")
+		return
+	}
+	var upgrader = websocket.Upgrader{}
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		fail(w, r, http.StatusServiceUnavailable, "Cannot open websocket")
+		return
+	}
+	if conn, ok := websockets[cookie.Value]; ok {
+		conn.Close()
+	}
+	websockets[cookie.Value] = conn
+}
+
 // PubValidatePost parses the POST data from the root form and calls the
 // validator using the built-in ServiceWaiter.
 func PubValidatePost(w http.ResponseWriter, r *http.Request) {
@@ -597,7 +622,7 @@ func PubValidatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respath := runValidatorPub(validator, repopath, gcl)
+	respath := runValidatorPub(validator, repopath, gcl, r)
 	http.Redirect(w, r, filepath.Join("results", respath), http.StatusFound)
 }
 
@@ -679,7 +704,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 
 	log.ShowWrite("[Info] Got user %s. Checking repo", gcl.Username)
 	// Payload is good. Run validator asynchronously and return OK header
-	runValidator(validator, repopath, commithash, gcl)
+	runValidator(validator, repopath, commithash, gcl, r)
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
