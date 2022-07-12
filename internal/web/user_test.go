@@ -17,7 +17,7 @@ import (
 	"testing"
 )
 
-var password = "student"
+// var password = "student"
 var weburl = "https://gin.dev.g-node.org:443"
 var giturl = "git@gin.dev.g-node.org:22"
 
