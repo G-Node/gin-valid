@@ -1,5 +1,6 @@
 package templates
 
+// Root displays a basic validation form.
 var Root = `
 {{ define "content" }}
 
