@@ -250,13 +250,13 @@ func getSessionOrRedirect(w http.ResponseWriter, r *http.Request) (gweb.UserToke
 	cookie, err := r.Cookie(cfg.Settings.CookieName)
 	if err != nil {
 		http.Redirect(w, r, "/login", http.StatusFound)
-		return gweb.UserToken{}, fmt.Errorf("No session cookie found")
+		return gweb.UserToken{}, fmt.Errorf("no session cookie found")
 	}
 	usertoken, err := getTokenBySession(cookie.Value)
 	if err != nil {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		log.Write("[Error] Loading token failed: %s", err.Error())
-		return gweb.UserToken{}, fmt.Errorf("Invalid session found in cookie")
+		return gweb.UserToken{}, fmt.Errorf("invalid session found in cookie")
 	}
 	return usertoken, nil
 }
