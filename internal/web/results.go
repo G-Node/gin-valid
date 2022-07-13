@@ -170,7 +170,6 @@ func Results(w http.ResponseWriter, r *http.Request) {
 		log.ShowWrite("[Error] Validator %q is supported but no render result function is set up", validator)
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("404 Validator results missing")))
 	}
-	return
 }
 
 func notValidatedYet(w http.ResponseWriter, r *http.Request, badge []byte, validator, user, repo string) {
