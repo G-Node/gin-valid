@@ -23,12 +23,10 @@ import (
 var username = "valid-testing"
 var reponame = "Testing"
 
-// var token = "4c82d07cccf103e071ad9ee8aec82c34d7003c6c"
-
 func TestValiateBadConfig(t *testing.T) {
 	valcfg, err := handleValidationConfig("wtf")
 	if err == nil {
-		t.Fatalf(`handleValidationConfig(cfgpath string) = %v, %v`, valcfg, err)
+		t.Fatalf("handleValidationConfig(cfgpath string) = %v", valcfg)
 	}
 }
 
@@ -39,7 +37,7 @@ func TestValidateNotYAML(t *testing.T) {
 	valcfg, err := handleValidationConfig("testing-config.json")
 	os.RemoveAll("testing-config.json")
 	if err == nil {
-		t.Fatalf(`handleValidationConfig(cfgpath string) = %v, %v`, valcfg, err)
+		t.Fatalf("handleValidationConfig(cfgpath string) = %v", valcfg)
 	}
 
 }
@@ -51,28 +49,28 @@ func TestValidateGoodConfig(t *testing.T) {
 	valcfg, err := handleValidationConfig("testing-config.json")
 	os.RemoveAll("testing-config.json")
 	if err != nil {
-		t.Fatalf(`handleValidationConfig(cfgpath string) = %v, %v`, valcfg, err)
+		t.Fatalf("handleValidationConfig(cfgpath string) = %v, %s", valcfg, err.Error())
 	}
 }
 
 func TestValidateBIDSNoData(t *testing.T) {
 	err := validateBIDS("wtf", "wtf")
 	if err == nil {
-		t.Fatalf(`validateBIDS(valroot, resdir string) = %v`, err)
+		t.Fatal("validateBIDS; expected error but got none")
 	}
 }
 
 func TestValidateNIXNoData(t *testing.T) {
 	err := validateNIX("wtf", "wtf")
 	if err == nil {
-		t.Fatalf(`validateNIX(valroot, resdir string) = %v`, err)
+		t.Fatal("validateNIX; expected error but got none")
 	}
 }
 
 func TestValidateODMLNoData(t *testing.T) {
 	err := validateODML("wtf", "wtf")
 	if err == nil {
-		t.Fatalf(`validateODML(valroot, resdir string) = %v`, err)
+		t.Fatal("validateODML; expected error but got none")
 	}
 }
 
@@ -84,9 +82,9 @@ func TestValidateBIDSOK(t *testing.T) {
 		t.Fatalf("Could not create yaml file: %s", err.Error())
 	}
 	defer f.Close()
-	_, err = f.WriteString("bidsconfig:\n  bidsroot: \"bids_example\"")
+	_, err = f.WriteString("bidsconfig:\n  bidsroot: 'bids_example'")
 	if err != nil {
-		t.Fatalf(`validateBIDS(valroot, resdir string) = %v`, err)
+		t.Fatalf("validateBIDS(valroot, resdir string) = %s", err.Error())
 	}
 	os.Mkdir(filepath.Join(tempdataset, "bids_example"), 0664)
 	srvcfg := config.Read()
@@ -100,17 +98,17 @@ func TestValidateNIXOK(t *testing.T) {
 	tempdataset, _ := ioutil.TempDir("", "tempdataset")
 	nix, err := ioutil.ReadFile("../../resources/nixdata.nix")
 	if err != nil {
-		t.Fatalf(`validateNIX(valroot, resdir string) = %v`, err)
+		t.Fatalf("validateNIX(valroot, resdir string) = %s", err.Error())
 	}
 	err = ioutil.WriteFile(filepath.Join(tempdataset, "nixdata.nix"), nix, 0664)
 	if err != nil {
-		t.Fatalf(`validateNIX(valroot, resdir string) = %v`, err)
+		t.Fatalf("validateNIX(valroot, resdir string) = %s", err.Error())
 	}
 	os.Mkdir(filepath.Join(tempdataset, ".git"), 0755)
 	nix = append([]byte("WTF_this_will_not_work"), nix...)
 	err = ioutil.WriteFile(filepath.Join(tempdataset, ".git", "nixdata_donottest.nix"), nix, 0664)
 	if err != nil {
-		t.Fatalf(`validateNIX(valroot, resdir string) = %v`, err)
+		t.Fatalf("validateNIX(valroot, resdir string) = %s", err.Error())
 	}
 	srvcfg := config.Read()
 	srvcfg.Dir.Result = resultfldr
@@ -123,107 +121,23 @@ func TestValidateODMLOK(t *testing.T) {
 	tempdataset, _ := ioutil.TempDir("", "tempdataset")
 	odml, err := ioutil.ReadFile("../../resources/odmldata.odml")
 	if err != nil {
-		t.Fatalf(`validateODML(valroot, resdir string) = %v`, err)
+		t.Fatalf("validateODML(valroot, resdir string) = %s", err.Error())
 	}
 	err = ioutil.WriteFile(filepath.Join(tempdataset, "odmldata.odml"), odml, 0664)
 	if err != nil {
-		t.Fatalf(`validateODML(valroot, resdir string) = %v`, err)
+		t.Fatalf("validateODML(valroot, resdir string) = %s", err.Error())
 	}
 	os.Mkdir(filepath.Join(tempdataset, ".git"), 0755)
 	odml = append([]byte("WTF_this_will_not_work"), odml...)
 	err = ioutil.WriteFile(filepath.Join(tempdataset, ".git", "odmldata_donottest.odml"), odml, 0664)
 	if err != nil {
-		t.Fatalf(`validateODML(valroot, resdir string) = %v`, err)
+		t.Fatalf("validateODML(valroot, resdir string) = %s", err.Error())
 	}
 	srvcfg := config.Read()
 	srvcfg.Dir.Result = resultfldr
 	config.Set(srvcfg)
 	validateODML(tempdataset, resultfldr)
 }
-
-/*func TestValidateBIDSOK(t *testing.T) {
-	testValidateOK(t,"bids")
-}
-
-func TestValidateNIXOK(t *testing.T) {
-	testValidateOK(t,"nix")
-}
-
-func TestValidateODMLOK(t *testing.T) {
-	testValidateOK(t,"odml")
-}
-
-func testValidateOK(t *testing.T, validator string) {
-	body := []byte("{\"after\": \"8cea328d5ee9d6d8944bd06802f761f140a31653\"}")
-	router := mux.NewRouter()
-	router.HandleFunc("/validate/{validator}/{user}/{repo}", Validate).Methods("POST")
-	srvcfg := config.Read()
-	srvcfg.Dir.Tokens = "."
-	os.Mkdir("tmp", 0755)
-	srvcfg.Dir.Temp = "./tmp"
-	srvcfg.GINAddresses.WebURL = weburl
-	srvcfg.GINAddresses.GitURL = giturl
-	config.Set(srvcfg)
-	var tok gweb.UserToken
-	tok.Username = username
-	tok.Token = token
-	saveToken(tok)
-	os.Mkdir(filepath.Join(srvcfg.Dir.Tokens, "by-repo"), 0755)
-	linkToRepo(username, filepath.Join(username, "/", reponame))
-	r, err := http.NewRequest("POST", filepath.Join("/validate", validator, username, reponame), bytes.NewReader(body))
-	if err != nil {
-		t.Fatalf(`Validate(w http.ResponseWriter, r *http.Request) = %v`, err)
-	}
-	w := httptest.NewRecorder()
-	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
-	sig.Write(body)
-	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
-	router.ServeHTTP(w, r)
-	time.Sleep(5 * time.Second) //TODO HACK
-	os.RemoveAll(filepath.Join(srvcfg.Dir.Tokens, "by-repo"))
-	os.RemoveAll("tmp")
-	status := w.Code
-	if status != http.StatusOK {
-		t.Fatalf(`Validate(w http.ResponseWriter, r *http.Request) status code = %v`, status)
-	}
-
-}
-
-func TestValidateBadgeFail(t *testing.T) {
-	body := []byte("{}")
-	router := mux.NewRouter()
-	router.HandleFunc("/validate/{validator}/{user}/{repo}", Validate).Methods("POST")
-	srvcfg := config.Read()
-	resultfldr, _ := ioutil.TempDir("", "results")
-	tempfldr, _ := ioutil.TempDir("", "temp")
-	tokenfldr, _ := ioutil.TempDir("", "token")
-	srvcfg.GINAddresses.WebURL = weburl
-	srvcfg.GINAddresses.GitURL = giturl
-	srvcfg.Dir.Result = resultfldr
-	srvcfg.Dir.Temp = tempfldr
-	srvcfg.Dir.Tokens = tokenfldr
-	config.Set(srvcfg)
-	var tok gweb.UserToken
-	tok.Username = username
-	tok.Token = token
-	saveToken(tok)
-	os.Mkdir(filepath.Join(tokenfldr, "by-repo"), 0755)
-	linkToRepo(username, filepath.Join(username, "/", reponame))
-	r, err := http.NewRequest("POST", filepath.Join("/validate/bids/", username, "/", reponame), bytes.NewReader(body))
-	if err != nil {
-		t.Fatalf(`Validate(w http.ResponseWriter, r *http.Request) = %v`, err)
-	}
-	w := httptest.NewRecorder()
-	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
-	sig.Write(body)
-	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
-	router.ServeHTTP(w, r)
-	time.Sleep(5 * time.Second) //TODO HACK
-	status := w.Code
-	if status != http.StatusOK {
-		t.Fatalf(`Validate(w http.ResponseWriter, r *http.Request) status code = %v`, status)
-	}
-}*/
 
 func TestValidatePubBrokenPubValidate(t *testing.T) {
 	original := templates.PubValidate
@@ -241,7 +155,7 @@ func TestValidatePubBrokenPubValidate(t *testing.T) {
 	templates.PubValidate = original
 	status := w.Code
 	if status != http.StatusInternalServerError {
-		t.Fatalf(`Validate(w http.ResponseWriter, r *http.Request) status code = %v`, status)
+		t.Fatalf("Validate(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }
 
@@ -261,7 +175,7 @@ func TestValidatePubBrokenLayout(t *testing.T) {
 	templates.Layout = original
 	status := w.Code
 	if status != http.StatusInternalServerError {
-		t.Fatalf(`Validate(w http.ResponseWriter, r *http.Request) status code = %v`, status)
+		t.Fatalf("Validate(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }
 
@@ -278,43 +192,12 @@ func TestValidatePub(t *testing.T) {
 	router.ServeHTTP(w, r)
 	status := w.Code
 	if status != http.StatusOK {
-		t.Fatalf(`Validate(w http.ResponseWriter, r *http.Request) status code = %v`, status)
+		t.Fatalf("Validate(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }
 
-/*func TestValidateTMPFail(t *testing.T) {
-	body := []byte("{}")
-	router := mux.NewRouter()
-	router.HandleFunc("/validate/{validator}/{user}/{repo}", Validate).Methods("POST")
-	srvcfg := config.Read()
-	resultfldr, _ := ioutil.TempDir("", "results")
-	tempfldr, _ := ioutil.TempDir("", "temp")
-	tokenfldr, _ := ioutil.TempDir("", "token")
-	srvcfg.GINAddresses.WebURL = weburl
-	srvcfg.GINAddresses.GitURL = giturl
-	srvcfg.Dir.Result = resultfldr
-	srvcfg.Dir.Temp = tempfldr
-	srvcfg.Dir.Tokens = tokenfldr
-	config.Set(srvcfg)
-	var tok gweb.UserToken
-	tok.Username = username
-	tok.Token = token
-	saveToken(tok)
-	os.Mkdir(filepath.Join(tokenfldr, "by-repo"), 0755)
-	linkToRepo(username, filepath.Join(username, "/", reponame))
-	r, _ := http.NewRequest("POST", filepath.Join("/validate/bids/", username, "/", reponame), bytes.NewReader(body))
-	w := httptest.NewRecorder()
-	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
-	sig.Write(body)
-	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
-	router.ServeHTTP(w, r)
-	os.RemoveAll(filepath.Join(srvcfg.Dir.Tokens, "by-repo"))
-	time.Sleep(5 * time.Second) //TODO HACK
-	status := w.Code
-	if status != http.StatusOK {
-		t.Fatalf(`Validate(w http.ResponseWriter, r *http.Request) status code = %v`, status)
-	}
-}*/
+/*
+ */
 
 func TestValidateRepoDoesNotExists(t *testing.T) {
 	token2 := "wtf"
@@ -341,11 +224,11 @@ func TestValidateRepoDoesNotExists(t *testing.T) {
 	sig.Write(body)
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
 	router.ServeHTTP(w, r)
-	time.Sleep(5 * time.Second) //TODO HACK
+	time.Sleep(5 * time.Second) // TODO HACK
 	os.RemoveAll(filepath.Join(srvcfg.Dir.Tokens, "by-repo"))
 	status := w.Code
 	if status != http.StatusNotFound {
-		t.Fatalf(`Validate(w http.ResponseWriter, r *http.Request) status code = %v`, status)
+		t.Fatalf("Validate(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }
 
@@ -362,7 +245,7 @@ func TestValidateBadToken(t *testing.T) {
 	router.ServeHTTP(w, r)
 	status := w.Code
 	if status != http.StatusUnauthorized {
-		t.Fatalf(`Validate(w http.ResponseWriter, r *http.Request) status code = %v`, status)
+		t.Fatalf("Validate(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }
 
@@ -379,7 +262,7 @@ func TestValidateUnsupportedValidator(t *testing.T) {
 	Validate(w, r)
 	status := w.Code
 	if status != http.StatusNotFound {
-		t.Fatalf(`Validate(w http.ResponseWriter, r *http.Request) status code = %v`, status)
+		t.Fatalf("Validate(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }
 
@@ -393,7 +276,7 @@ func TestValidateHookSecretFailed(t *testing.T) {
 	Validate(w, r)
 	status := w.Code
 	if status != http.StatusBadRequest {
-		t.Fatalf(`Validate(w http.ResponseWriter, r *http.Request) status code = %v`, status)
+		t.Fatalf("Validate(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }
 
@@ -403,7 +286,7 @@ func TestValidateBodyNotJSON(t *testing.T) {
 	Validate(w, r)
 	status := w.Code
 	if status != http.StatusBadRequest {
-		t.Fatalf(`Validate(w http.ResponseWriter, r *http.Request) status code = %v`, status)
+		t.Fatalf("Validate(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }
 
@@ -419,6 +302,128 @@ func TestValidateBadBody(t *testing.T) {
 	Validate(w, testRequest)
 	status := w.Code
 	if status != http.StatusBadRequest {
-		t.Fatalf(`Validate(w http.ResponseWriter, r *http.Request) status code = %v`, status)
+		t.Fatalf("Validate(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }
+
+/*
+// Refactor tests to remove the dev server dependency
+var token = "4c82d07cccf103e071ad9ee8aec82c34d7003c6c"
+
+func TestValidateBIDSOK(t *testing.T) {
+	testValidateOK(t, "bids")
+}
+
+func TestValidateNIXOK(t *testing.T) {
+	testValidateOK(t, "nix")
+}
+
+func TestValidateODMLOK(t *testing.T) {
+	testValidateOK(t, "odml")
+}
+
+func testValidateOK(t *testing.T, validator string) {
+	body := []byte('{"after": "8cea328d5ee9d6d8944bd06802f761f140a31653"}')
+	router := mux.NewRouter()
+	router.HandleFunc("/validate/{validator}/{user}/{repo}", Validate).Methods("POST")
+	srvcfg := config.Read()
+	srvcfg.Dir.Tokens = "."
+	os.Mkdir("tmp", 0755)
+	srvcfg.Dir.Temp = "./tmp"
+	srvcfg.GINAddresses.WebURL = weburl
+	srvcfg.GINAddresses.GitURL = giturl
+	config.Set(srvcfg)
+	var tok gweb.UserToken
+	tok.Username = username
+	tok.Token = token
+	saveToken(tok)
+	os.Mkdir(filepath.Join(srvcfg.Dir.Tokens, "by-repo"), 0755)
+	linkToRepo(username, filepath.Join(username, "/", reponame))
+	r, err := http.NewRequest("POST", filepath.Join("/validate", validator, username, reponame), bytes.NewReader(body))
+	if err != nil {
+		t.Fatalf("Validate(w http.ResponseWriter, r *http.Request) = %s", err.Error())
+	}
+	w := httptest.NewRecorder()
+	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
+	sig.Write(body)
+	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
+	router.ServeHTTP(w, r)
+	time.Sleep(5 * time.Second) // TODO HACK
+	os.RemoveAll(filepath.Join(srvcfg.Dir.Tokens, "by-repo"))
+	os.RemoveAll("tmp")
+	status := w.Code
+	if status != http.StatusOK {
+		t.Fatalf("Validate(w http.ResponseWriter, r *http.Request) status code = %d", status)
+	}
+}
+
+func TestValidateBadgeFail(t *testing.T) {
+	body := []byte("{}")
+	router := mux.NewRouter()
+	router.HandleFunc("/validate/{validator}/{user}/{repo}", Validate).Methods("POST")
+	srvcfg := config.Read()
+	resultfldr, _ := ioutil.TempDir("", "results")
+	tempfldr, _ := ioutil.TempDir("", "temp")
+	tokenfldr, _ := ioutil.TempDir("", "token")
+	srvcfg.GINAddresses.WebURL = weburl
+	srvcfg.GINAddresses.GitURL = giturl
+	srvcfg.Dir.Result = resultfldr
+	srvcfg.Dir.Temp = tempfldr
+	srvcfg.Dir.Tokens = tokenfldr
+	config.Set(srvcfg)
+	var tok gweb.UserToken
+	tok.Username = username
+	tok.Token = token
+	saveToken(tok)
+	os.Mkdir(filepath.Join(tokenfldr, "by-repo"), 0755)
+	linkToRepo(username, filepath.Join(username, "/", reponame))
+	r, err := http.NewRequest("POST", filepath.Join("/validate/bids/", username, "/", reponame), bytes.NewReader(body))
+	if err != nil {
+		t.Fatalf("Validate(w http.ResponseWriter, r *http.Request) = %s", err.Error())
+	}
+	w := httptest.NewRecorder()
+	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
+	sig.Write(body)
+	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
+	router.ServeHTTP(w, r)
+	time.Sleep(5 * time.Second) // TODO HACK
+	status := w.Code
+	if status != http.StatusOK {
+		t.Fatalf("Validate(w http.ResponseWriter, r *http.Request) status code = %d", status)
+	}
+}
+
+func TestValidateTMPFail(t *testing.T) {
+	body := []byte("{}")
+	router := mux.NewRouter()
+	router.HandleFunc("/validate/{validator}/{user}/{repo}", Validate).Methods("POST")
+	srvcfg := config.Read()
+	resultfldr, _ := ioutil.TempDir("", "results")
+	tempfldr, _ := ioutil.TempDir("", "temp")
+	tokenfldr, _ := ioutil.TempDir("", "token")
+	srvcfg.GINAddresses.WebURL = weburl
+	srvcfg.GINAddresses.GitURL = giturl
+	srvcfg.Dir.Result = resultfldr
+	srvcfg.Dir.Temp = tempfldr
+	srvcfg.Dir.Tokens = tokenfldr
+	config.Set(srvcfg)
+	var tok gweb.UserToken
+	tok.Username = username
+	tok.Token = token
+	saveToken(tok)
+	os.Mkdir(filepath.Join(tokenfldr, "by-repo"), 0755)
+	linkToRepo(username, filepath.Join(username, "/", reponame))
+	r, _ := http.NewRequest("POST", filepath.Join("/validate/bids/", username, "/", reponame), bytes.NewReader(body))
+	w := httptest.NewRecorder()
+	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
+	sig.Write(body)
+	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
+	router.ServeHTTP(w, r)
+	os.RemoveAll(filepath.Join(srvcfg.Dir.Tokens, "by-repo"))
+	time.Sleep(5 * time.Second) //TODO HACK
+	status := w.Code
+	if status != http.StatusOK {
+		t.Fatalf("Validate(w http.ResponseWriter, r *http.Request) status code = %d", status)
+	}
+}
+*/
