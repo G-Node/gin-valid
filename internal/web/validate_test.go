@@ -32,6 +32,8 @@ func TestValidateNotYAML(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating temp dir: %s", err.Error())
 	}
+	defer os.RemoveAll(tmpdir)
+
 	testfile := filepath.Join(tmpdir, "testing-config.json")
 	f, err := os.Create(testfile)
 	if err != nil {
@@ -47,15 +49,24 @@ func TestValidateNotYAML(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected error validating config, but got none; cfg: %v", valcfg)
 	}
-	defer os.RemoveAll(tmpdir)
 }
 
 func TestValidateGoodConfig(t *testing.T) {
-	f, _ := os.Create("testing-config.json")
+	tmpdir, err := ioutil.TempDir("", "TestValidateGoodConfig")
+	if err != nil {
+		t.Fatalf("error creating temp dir: %s", err.Error())
+	}
+	defer os.RemoveAll(tmpdir)
+
+	testfile := filepath.Join(tmpdir, "testing-config.json")
+	f, err := os.Create(testfile)
+	if err != nil {
+		t.Fatalf("error creating json file: %s", err.Error())
+	}
+	defer f.Close()
+
 	f.WriteString(`empty: "true"`)
-	f.Close()
-	valcfg, err := handleValidationConfig("testing-config.json")
-	os.RemoveAll("testing-config.json")
+	valcfg, err := handleValidationConfig(testfile)
 	if err != nil {
 		t.Fatalf("handleValidationConfig(cfgpath string) = %v, %s", valcfg, err.Error())
 	}
@@ -83,18 +94,36 @@ func TestValidateODMLNoData(t *testing.T) {
 }
 
 func TestValidateBIDSOK(t *testing.T) {
-	resultfldr, _ := ioutil.TempDir("", "results")
-	tempdataset, _ := ioutil.TempDir("", "tempdataset")
+	tmpdir, err := ioutil.TempDir("", "TestValidateGoodConfig")
+	if err != nil {
+		t.Fatalf("error creating temp dir: %s", err.Error())
+	}
+	defer os.RemoveAll(tmpdir)
+
+	resultfldr := filepath.Join(tmpdir, "results")
+	err = os.Mkdir(resultfldr, 0755)
+	if err != nil {
+		t.Fatalf("error creating results dir: %s", err.Error())
+	}
+
+	tempdataset := filepath.Join(tmpdir, "tempdataset")
+	err = os.Mkdir(tempdataset, 0755)
+	if err != nil {
+		t.Fatalf("error creating tempdataset dir: %s", err.Error())
+	}
+
 	f, err := os.Create(filepath.Join(tempdataset, "ginvalidation.yaml"))
 	if err != nil {
 		t.Fatalf("Could not create yaml file: %s", err.Error())
 	}
 	defer f.Close()
+
 	_, err = f.WriteString("bidsconfig:\n  bidsroot: 'bids_example'")
 	if err != nil {
 		t.Fatalf("validateBIDS(valroot, resdir string) = %s", err.Error())
 	}
-	os.Mkdir(filepath.Join(tempdataset, "bids_example"), 0664)
+
+	os.Mkdir(filepath.Join(tempdataset, "bids_example"), 0755)
 	srvcfg := config.Read()
 	srvcfg.Dir.Result = resultfldr
 	config.Set(srvcfg)
@@ -102,22 +131,40 @@ func TestValidateBIDSOK(t *testing.T) {
 }
 
 func TestValidateNIXOK(t *testing.T) {
-	resultfldr, _ := ioutil.TempDir("", "results")
-	tempdataset, _ := ioutil.TempDir("", "tempdataset")
+	tmpdir, err := ioutil.TempDir("", "TestValidateNIXOK")
+	if err != nil {
+		t.Fatalf("error creating temp dir: %s", err.Error())
+	}
+	defer os.RemoveAll(tmpdir)
+
+	resultfldr := filepath.Join(tmpdir, "results")
+	err = os.Mkdir(resultfldr, 0755)
+	if err != nil {
+		t.Fatalf("error creating results dir: %s", err.Error())
+	}
+
+	tempdataset := filepath.Join(tmpdir, "tempdataset")
+	err = os.Mkdir(tempdataset, 0755)
+	if err != nil {
+		t.Fatalf("error creating tempdataset dir: %s", err.Error())
+	}
+
 	nix, err := ioutil.ReadFile("../../resources/nixdata.nix")
 	if err != nil {
 		t.Fatalf("validateNIX(valroot, resdir string) = %s", err.Error())
 	}
-	err = ioutil.WriteFile(filepath.Join(tempdataset, "nixdata.nix"), nix, 0664)
+	err = ioutil.WriteFile(filepath.Join(tempdataset, "nixdata.nix"), nix, 0755)
 	if err != nil {
 		t.Fatalf("validateNIX(valroot, resdir string) = %s", err.Error())
 	}
+
 	os.Mkdir(filepath.Join(tempdataset, ".git"), 0755)
 	nix = append([]byte("WTF_this_will_not_work"), nix...)
-	err = ioutil.WriteFile(filepath.Join(tempdataset, ".git", "nixdata_donottest.nix"), nix, 0664)
+	err = ioutil.WriteFile(filepath.Join(tempdataset, ".git", "nixdata_donottest.nix"), nix, 0755)
 	if err != nil {
 		t.Fatalf("validateNIX(valroot, resdir string) = %s", err.Error())
 	}
+
 	srvcfg := config.Read()
 	srvcfg.Dir.Result = resultfldr
 	config.Set(srvcfg)
@@ -125,22 +172,40 @@ func TestValidateNIXOK(t *testing.T) {
 }
 
 func TestValidateODMLOK(t *testing.T) {
-	resultfldr, _ := ioutil.TempDir("", "results")
-	tempdataset, _ := ioutil.TempDir("", "tempdataset")
+	tmpdir, err := ioutil.TempDir("", "TestValidateODMLOK")
+	if err != nil {
+		t.Fatalf("error creating temp dir: %s", err.Error())
+	}
+	defer os.RemoveAll(tmpdir)
+
+	resultfldr := filepath.Join(tmpdir, "results")
+	err = os.Mkdir(resultfldr, 0755)
+	if err != nil {
+		t.Fatalf("error creating results dir: %s", err.Error())
+	}
+
+	tempdataset := filepath.Join(tmpdir, "tempdataset")
+	err = os.Mkdir(tempdataset, 0755)
+	if err != nil {
+		t.Fatalf("error creating tempdataset dir: %s", err.Error())
+	}
+
 	odml, err := ioutil.ReadFile("../../resources/odmldata.odml")
 	if err != nil {
 		t.Fatalf("validateODML(valroot, resdir string) = %s", err.Error())
 	}
-	err = ioutil.WriteFile(filepath.Join(tempdataset, "odmldata.odml"), odml, 0664)
+	err = ioutil.WriteFile(filepath.Join(tempdataset, "odmldata.odml"), odml, 0755)
 	if err != nil {
 		t.Fatalf("validateODML(valroot, resdir string) = %s", err.Error())
 	}
+
 	os.Mkdir(filepath.Join(tempdataset, ".git"), 0755)
 	odml = append([]byte("WTF_this_will_not_work"), odml...)
-	err = ioutil.WriteFile(filepath.Join(tempdataset, ".git", "odmldata_donottest.odml"), odml, 0664)
+	err = ioutil.WriteFile(filepath.Join(tempdataset, ".git", "odmldata_donottest.odml"), odml, 0755)
 	if err != nil {
 		t.Fatalf("validateODML(valroot, resdir string) = %s", err.Error())
 	}
+
 	srvcfg := config.Read()
 	srvcfg.Dir.Result = resultfldr
 	config.Set(srvcfg)
@@ -205,35 +270,57 @@ func TestValidatePub(t *testing.T) {
 }
 
 func TestValidateRepoDoesNotExists(t *testing.T) {
+	tmpdir, err := ioutil.TempDir("", "TestValidateRepoDoesNotExists")
+	if err != nil {
+		t.Fatalf("error creating temp dir: %s", err.Error())
+	}
+	defer os.RemoveAll(tmpdir)
+
+	resultfldr := filepath.Join(tmpdir, "results")
+	err = os.Mkdir(resultfldr, 0755)
+	if err != nil {
+		t.Fatalf("error creating results dir: %s", err.Error())
+	}
+
+	tempfldr := filepath.Join(tmpdir, "temp")
+	err = os.Mkdir(tempfldr, 0755)
+	if err != nil {
+		t.Fatalf("error creating tempfldr dir: %s", err.Error())
+	}
+
+	tokenfldr := filepath.Join(tmpdir, "token")
+	err = os.MkdirAll(filepath.Join(tokenfldr, "by-repo"), 0755)
+	if err != nil {
+		t.Fatalf("error creating token dir: %s", err.Error())
+	}
+
 	username := "valid-testing"
 	reponame := "Testing"
-
-	token2 := "wtf"
+	token := "wtf"
 	body := []byte("{}")
 	router := mux.NewRouter()
 	router.HandleFunc("/validate/{validator}/{user}/{repo}", Validate).Methods("POST")
-	resultfldr, _ := ioutil.TempDir("", "results")
-	tempfldr, _ := ioutil.TempDir("", "temp")
-	tokenfldr, _ := ioutil.TempDir("", "token")
+
 	srvcfg := config.Read()
 	srvcfg.Dir.Result = resultfldr
 	srvcfg.Dir.Temp = tempfldr
 	srvcfg.Dir.Tokens = tokenfldr
 	config.Set(srvcfg)
+
 	var tok gweb.UserToken
 	tok.Username = username
-	tok.Token = token2
+	tok.Token = token
 	saveToken(tok)
-	os.Mkdir(filepath.Join(tokenfldr, "by-repo"), 0755)
 	linkToRepo(username, filepath.Join(username, "/", reponame))
+
 	r, _ := http.NewRequest("POST", filepath.Join("/validate/bids/", username, "/", reponame), bytes.NewReader(body))
 	w := httptest.NewRecorder()
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
 	sig.Write(body)
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
 	router.ServeHTTP(w, r)
+
 	time.Sleep(5 * time.Second) // TODO HACK
-	os.RemoveAll(filepath.Join(srvcfg.Dir.Tokens, "by-repo"))
 	status := w.Code
 	if status != http.StatusNotFound {
 		t.Fatalf("Validate(w http.ResponseWriter, r *http.Request) status code = %d", status)
@@ -331,22 +418,50 @@ func TestValidateODMLOK(t *testing.T) {
 }
 
 func testValidateOK(t *testing.T, validator string) {
+	tmpdir, err := ioutil.TempDir("", "testValidateOK")
+	if err != nil {
+		t.Fatalf("error creating temp dir: %s", err.Error())
+	}
+	defer os.RemoveAll(tmpdir)
+
+	resultfldr := filepath.Join(tmpdir, "results")
+	err = os.Mkdir(resultfldr, 0755)
+	if err != nil {
+		t.Fatalf("error creating results dir: %s", err.Error())
+	}
+
+	tempfldr := filepath.Join(tmpdir, "temp")
+	err = os.Mkdir(tempfldr, 0755)
+	if err != nil {
+		t.Fatalf("error creating tempfldr dir: %s", err.Error())
+	}
+
+	tokenfldr := filepath.Join(tmpdir, "token")
+	err = os.MkdirAll(filepath.Join(tokenfldr, "by-repo"), 0755)
+	if err != nil {
+		t.Fatalf("error creating token dir: %s", err.Error())
+	}
+
+	username := "valid-testing"
+	reponame := "Testing"
+
 	body := []byte('{"after": "8cea328d5ee9d6d8944bd06802f761f140a31653"}')
 	router := mux.NewRouter()
 	router.HandleFunc("/validate/{validator}/{user}/{repo}", Validate).Methods("POST")
+
 	srvcfg := config.Read()
-	srvcfg.Dir.Tokens = "."
-	os.Mkdir("tmp", 0755)
-	srvcfg.Dir.Temp = "./tmp"
+	srvcfg.Dir.Tokens = tokenfldr
+	srvcfg.Dir.Temp = tempfldr
 	srvcfg.GINAddresses.WebURL = weburl
 	srvcfg.GINAddresses.GitURL = giturl
 	config.Set(srvcfg)
+
 	var tok gweb.UserToken
 	tok.Username = username
 	tok.Token = token
 	saveToken(tok)
-	os.Mkdir(filepath.Join(srvcfg.Dir.Tokens, "by-repo"), 0755)
 	linkToRepo(username, filepath.Join(username, "/", reponame))
+
 	r, err := http.NewRequest("POST", filepath.Join("/validate", validator, username, reponame), bytes.NewReader(body))
 	if err != nil {
 		t.Fatalf("Validate(w http.ResponseWriter, r *http.Request) = %s", err.Error())
@@ -356,9 +471,8 @@ func testValidateOK(t *testing.T, validator string) {
 	sig.Write(body)
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
 	router.ServeHTTP(w, r)
+
 	time.Sleep(5 * time.Second) // TODO HACK
-	os.RemoveAll(filepath.Join(srvcfg.Dir.Tokens, "by-repo"))
-	os.RemoveAll("tmp")
 	status := w.Code
 	if status != http.StatusOK {
 		t.Fatalf("Validate(w http.ResponseWriter, r *http.Request) status code = %d", status)
@@ -366,25 +480,51 @@ func testValidateOK(t *testing.T, validator string) {
 }
 
 func TestValidateBadgeFail(t *testing.T) {
+	tmpdir, err := ioutil.TempDir("", "TestValidateRepoDoesNotExists")
+	if err != nil {
+		t.Fatalf("error creating temp dir: %s", err.Error())
+	}
+	defer os.RemoveAll(tmpdir)
+
+	resultfldr := filepath.Join(tmpdir, "results")
+	err = os.Mkdir(resultfldr, 0755)
+	if err != nil {
+		t.Fatalf("error creating results dir: %s", err.Error())
+	}
+
+	tempfldr := filepath.Join(tmpdir, "temp")
+	err = os.Mkdir(tempfldr, 0755)
+	if err != nil {
+		t.Fatalf("error creating tempfldr dir: %s", err.Error())
+	}
+
+	tokenfldr := filepath.Join(tmpdir, "token")
+	err = os.MkdirAll(filepath.Join(tokenfldr, "by-repo"), 0755)
+	if err != nil {
+		t.Fatalf("error creating token dir: %s", err.Error())
+	}
+
+	username := "valid-testing"
+	reponame := "Testing"
+
 	body := []byte("{}")
 	router := mux.NewRouter()
 	router.HandleFunc("/validate/{validator}/{user}/{repo}", Validate).Methods("POST")
+
 	srvcfg := config.Read()
-	resultfldr, _ := ioutil.TempDir("", "results")
-	tempfldr, _ := ioutil.TempDir("", "temp")
-	tokenfldr, _ := ioutil.TempDir("", "token")
 	srvcfg.GINAddresses.WebURL = weburl
 	srvcfg.GINAddresses.GitURL = giturl
 	srvcfg.Dir.Result = resultfldr
 	srvcfg.Dir.Temp = tempfldr
 	srvcfg.Dir.Tokens = tokenfldr
 	config.Set(srvcfg)
+
 	var tok gweb.UserToken
 	tok.Username = username
 	tok.Token = token
 	saveToken(tok)
-	os.Mkdir(filepath.Join(tokenfldr, "by-repo"), 0755)
 	linkToRepo(username, filepath.Join(username, "/", reponame))
+
 	r, err := http.NewRequest("POST", filepath.Join("/validate/bids/", username, "/", reponame), bytes.NewReader(body))
 	if err != nil {
 		t.Fatalf("Validate(w http.ResponseWriter, r *http.Request) = %s", err.Error())
@@ -394,6 +534,7 @@ func TestValidateBadgeFail(t *testing.T) {
 	sig.Write(body)
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
 	router.ServeHTTP(w, r)
+
 	time.Sleep(5 * time.Second) // TODO HACK
 	status := w.Code
 	if status != http.StatusOK {
@@ -402,32 +543,58 @@ func TestValidateBadgeFail(t *testing.T) {
 }
 
 func TestValidateTMPFail(t *testing.T) {
+	tmpdir, err := ioutil.TempDir("", "TestValidateRepoDoesNotExists")
+	if err != nil {
+		t.Fatalf("error creating temp dir: %s", err.Error())
+	}
+	defer os.RemoveAll(tmpdir)
+
+	resultfldr := filepath.Join(tmpdir, "results")
+	err = os.Mkdir(resultfldr, 0755)
+	if err != nil {
+		t.Fatalf("error creating results dir: %s", err.Error())
+	}
+
+	tempfldr := filepath.Join(tmpdir, "temp")
+	err = os.Mkdir(tempfldr, 0755)
+	if err != nil {
+		t.Fatalf("error creating tempfldr dir: %s", err.Error())
+	}
+
+	tokenfldr := filepath.Join(tmpdir, "token")
+	err = os.MkdirAll(filepath.Join(tokenfldr, "by-repo"), 0755)
+	if err != nil {
+		t.Fatalf("error creating token dir: %s", err.Error())
+	}
+
+	username := "valid-testing"
+	reponame := "Testing"
+
 	body := []byte("{}")
 	router := mux.NewRouter()
 	router.HandleFunc("/validate/{validator}/{user}/{repo}", Validate).Methods("POST")
+
 	srvcfg := config.Read()
-	resultfldr, _ := ioutil.TempDir("", "results")
-	tempfldr, _ := ioutil.TempDir("", "temp")
-	tokenfldr, _ := ioutil.TempDir("", "token")
 	srvcfg.GINAddresses.WebURL = weburl
 	srvcfg.GINAddresses.GitURL = giturl
 	srvcfg.Dir.Result = resultfldr
 	srvcfg.Dir.Temp = tempfldr
 	srvcfg.Dir.Tokens = tokenfldr
 	config.Set(srvcfg)
+
 	var tok gweb.UserToken
 	tok.Username = username
 	tok.Token = token
 	saveToken(tok)
-	os.Mkdir(filepath.Join(tokenfldr, "by-repo"), 0755)
 	linkToRepo(username, filepath.Join(username, "/", reponame))
+
 	r, _ := http.NewRequest("POST", filepath.Join("/validate/bids/", username, "/", reponame), bytes.NewReader(body))
 	w := httptest.NewRecorder()
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
 	sig.Write(body)
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
 	router.ServeHTTP(w, r)
-	os.RemoveAll(filepath.Join(srvcfg.Dir.Tokens, "by-repo"))
+
 	time.Sleep(5 * time.Second) //TODO HACK
 	status := w.Code
 	if status != http.StatusOK {

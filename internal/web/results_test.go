@@ -16,6 +16,18 @@ import (
 )
 
 func TestResultsUnsupportedV2(t *testing.T) {
+	tmpdir, err := ioutil.TempDir("", "TestResultsUnsupportedV2")
+	if err != nil {
+		t.Fatalf("error creating temp dir: %s", err.Error())
+	}
+	defer os.RemoveAll(tmpdir)
+
+	resultfldr := filepath.Join(tmpdir, "results")
+	err = os.Mkdir(resultfldr, 0755)
+	if err != nil {
+		t.Fatalf("error creating results dir: %s", err.Error())
+	}
+
 	username := "valid-testing"
 	reponame := "Testing"
 
@@ -26,18 +38,21 @@ func TestResultsUnsupportedV2(t *testing.T) {
 	router.HandleFunc("/results/{validator}/{user}/{repo}/{id}", Results).Methods("GET")
 	r, _ := http.NewRequest("GET", filepath.Join("/results/wtf", username, "/", reponame, "/", id), bytes.NewReader(body))
 	w := httptest.NewRecorder()
-	resultfldr, _ := ioutil.TempDir("", "results")
+
 	srvcfg := config.Read()
 	srvcfg.Settings.Validators = append(srvcfg.Settings.Validators, "wtf")
 	srvcfg.Dir.Result = resultfldr
 	config.Set(srvcfg)
+
 	os.MkdirAll(filepath.Join(resultfldr, "nix", username, reponame, id), 0755)
 	f, _ := os.Create(filepath.Join(resultfldr, "nix", username, reponame, id, srvcfg.Label.ResultsFile))
 	defer f.Close()
 	f.WriteString(content)
+
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
 	sig.Write(body)
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
+
 	router.ServeHTTP(w, r)
 	srvcfg.Settings.Validators = srvcfg.Settings.Validators[:len(srvcfg.Settings.Validators)-1]
 	config.Set(srvcfg)
@@ -48,30 +63,43 @@ func TestResultsUnsupportedV2(t *testing.T) {
 }
 
 func TestResultsODML(t *testing.T) {
+	tmpdir, err := ioutil.TempDir("", "TestResultsODML")
+	if err != nil {
+		t.Fatalf("error creating temp dir: %s", err.Error())
+	}
+	defer os.RemoveAll(tmpdir)
+
+	resultfldr := filepath.Join(tmpdir, "results")
+	err = os.Mkdir(resultfldr, 0755)
+	if err != nil {
+		t.Fatalf("error creating results dir: %s", err.Error())
+	}
+
 	username := "valid-testing"
 	reponame := "Testing"
 
 	id := "1"
 	content := `{"empty":"json"}`
 	body := []byte("{}")
+
 	router := mux.NewRouter()
 	router.HandleFunc("/results/{validator}/{user}/{repo}/{id}", Results).Methods("GET")
 	r, _ := http.NewRequest("GET", filepath.Join("/results/odml", username, reponame, id), bytes.NewReader(body))
 	w := httptest.NewRecorder()
-	parent := os.TempDir()
-	pth := filepath.Join(parent, "results")
-	os.Mkdir(pth, 0755)
-	resultfldr, _ := ioutil.TempDir(pth, "*-res")
+
 	srvcfg := config.Read()
 	srvcfg.Dir.Result = resultfldr
 	config.Set(srvcfg)
+
 	os.MkdirAll(filepath.Join(resultfldr, "odml", username, reponame, id), 0755)
 	f, _ := os.Create(filepath.Join(resultfldr, "odml", username, reponame, id, srvcfg.Label.ResultsFile))
 	defer f.Close()
 	f.WriteString(content)
+
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
 	sig.Write(body)
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
+
 	router.ServeHTTP(w, r)
 	status := w.Code
 	if status != http.StatusOK {
@@ -80,6 +108,18 @@ func TestResultsODML(t *testing.T) {
 }
 
 func TestResultsNIX(t *testing.T) {
+	tmpdir, err := ioutil.TempDir("", "TestResultsNIX")
+	if err != nil {
+		t.Fatalf("error creating temp dir: %s", err.Error())
+	}
+	defer os.RemoveAll(tmpdir)
+
+	resultfldr := filepath.Join(tmpdir, "results")
+	err = os.Mkdir(resultfldr, 0755)
+	if err != nil {
+		t.Fatalf("error creating results dir: %s", err.Error())
+	}
+
 	username := "valid-testing"
 	reponame := "Testing"
 
@@ -90,20 +130,20 @@ func TestResultsNIX(t *testing.T) {
 	router.HandleFunc("/results/{validator}/{user}/{repo}/{id}", Results).Methods("GET")
 	r, _ := http.NewRequest("GET", filepath.Join("/results/nix", username, "/", reponame, "/", id), bytes.NewReader(body))
 	w := httptest.NewRecorder()
-	parent := os.TempDir()
-	pth := filepath.Join(parent, "results")
-	os.Mkdir(pth, 0755)
-	resultfldr, _ := ioutil.TempDir(pth, "*-res")
+
 	srvcfg := config.Read()
 	srvcfg.Dir.Result = resultfldr
 	config.Set(srvcfg)
+
 	os.MkdirAll(filepath.Join(resultfldr, "nix", username, reponame, id), 0755)
 	f, _ := os.Create(filepath.Join(resultfldr, "nix", username, reponame, id, srvcfg.Label.ResultsFile))
 	defer f.Close()
 	f.WriteString(content)
+
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
 	sig.Write(body)
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
+
 	router.ServeHTTP(w, r)
 	status := w.Code
 	if status != http.StatusOK {
@@ -112,6 +152,18 @@ func TestResultsNIX(t *testing.T) {
 }
 
 func TestResultsInJSON(t *testing.T) {
+	tmpdir, err := ioutil.TempDir("", "TestResultsInJSON")
+	if err != nil {
+		t.Fatalf("error creating temp dir: %s", err.Error())
+	}
+	defer os.RemoveAll(tmpdir)
+
+	resultfldr := filepath.Join(tmpdir, "results")
+	err = os.Mkdir(resultfldr, 0755)
+	if err != nil {
+		t.Fatalf("error creating results dir: %s", err.Error())
+	}
+
 	username := "valid-testing"
 	reponame := "Testing"
 
@@ -122,20 +174,20 @@ func TestResultsInJSON(t *testing.T) {
 	router.HandleFunc("/results/{validator}/{user}/{repo}/{id}", Results).Methods("GET")
 	r, _ := http.NewRequest("GET", filepath.Join("/results/bids", username, "/", reponame, "/", id), bytes.NewReader(body))
 	w := httptest.NewRecorder()
-	parent := os.TempDir()
-	pth := filepath.Join(parent, "results")
-	os.Mkdir(pth, 0755)
-	resultfldr, _ := ioutil.TempDir(pth, "*-res")
+
 	srvcfg := config.Read()
 	srvcfg.Dir.Result = resultfldr
 	config.Set(srvcfg)
+
 	os.MkdirAll(filepath.Join(resultfldr, "bids", username, reponame, id), 0755)
 	f, _ := os.Create(filepath.Join(resultfldr, "bids", username, reponame, id, srvcfg.Label.ResultsFile))
 	defer f.Close()
 	f.WriteString(content)
+
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
 	sig.Write(body)
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
+
 	router.ServeHTTP(w, r)
 	status := w.Code
 	if status != http.StatusOK {
@@ -144,6 +196,18 @@ func TestResultsInJSON(t *testing.T) {
 }
 
 func TestResultsInProgress(t *testing.T) {
+	tmpdir, err := ioutil.TempDir("", "TestResultsInProgress")
+	if err != nil {
+		t.Fatalf("error creating temp dir: %s", err.Error())
+	}
+	defer os.RemoveAll(tmpdir)
+
+	resultfldr := filepath.Join(tmpdir, "results")
+	err = os.Mkdir(resultfldr, 0755)
+	if err != nil {
+		t.Fatalf("error creating results dir: %s", err.Error())
+	}
+
 	username := "valid-testing"
 	reponame := "Testing"
 
@@ -154,17 +218,16 @@ func TestResultsInProgress(t *testing.T) {
 	router.HandleFunc("/results/{validator}/{user}/{repo}/{id}", Results).Methods("GET")
 	r, _ := http.NewRequest("GET", filepath.Join("/results/bids", username, "/", reponame, "/", id), bytes.NewReader(body))
 	w := httptest.NewRecorder()
-	parent := os.TempDir()
-	pth := filepath.Join(parent, "results")
-	os.Mkdir(pth, 0755)
-	resultfldr, _ := ioutil.TempDir(pth, "*-res")
+
 	srvcfg := config.Read()
 	srvcfg.Dir.Result = resultfldr
 	config.Set(srvcfg)
+
 	os.MkdirAll(filepath.Join(resultfldr, "bids", username, reponame, id), 0755)
 	f, _ := os.Create(filepath.Join(resultfldr, "bids", username, reponame, id, srvcfg.Label.ResultsFile))
 	defer f.Close()
 	f.WriteString(content)
+
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
 	sig.Write(body)
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
@@ -176,6 +239,18 @@ func TestResultsInProgress(t *testing.T) {
 }
 
 func TestResultsSomeResults(t *testing.T) {
+	tmpdir, err := ioutil.TempDir("", "TestResultsSomeResults")
+	if err != nil {
+		t.Fatalf("error creating temp dir: %s", err.Error())
+	}
+	defer os.RemoveAll(tmpdir)
+
+	resultfldr := filepath.Join(tmpdir, "results")
+	err = os.Mkdir(resultfldr, 0755)
+	if err != nil {
+		t.Fatalf("error creating results dir: %s", err.Error())
+	}
+
 	username := "valid-testing"
 	reponame := "Testing"
 
@@ -186,20 +261,20 @@ func TestResultsSomeResults(t *testing.T) {
 	router.HandleFunc("/results/{validator}/{user}/{repo}/{id}", Results).Methods("GET")
 	r, _ := http.NewRequest("GET", filepath.Join("/results/bids", username, "/", reponame, "/", id), bytes.NewReader(body))
 	w := httptest.NewRecorder()
-	parent := os.TempDir()
-	pth := filepath.Join(parent, "results")
-	os.Mkdir(pth, 0755)
-	resultfldr, _ := ioutil.TempDir(pth, "*-res")
+
 	srvcfg := config.Read()
 	srvcfg.Dir.Result = resultfldr
 	config.Set(srvcfg)
+
 	os.MkdirAll(filepath.Join(resultfldr, "bids", username, reponame, id), 0755)
 	f, _ := os.Create(filepath.Join(resultfldr, "bids", username, reponame, id, srvcfg.Label.ResultsFile))
 	defer f.Close()
 	f.WriteString(content)
+
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
 	sig.Write(body)
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
+
 	router.ServeHTTP(w, r)
 	status := w.Code
 	if status != http.StatusOK {
@@ -213,10 +288,12 @@ func TestResultsNoResults(t *testing.T) {
 	router.HandleFunc("/results/{validator}/{user}/{repo}/{id}", Results).Methods("GET")
 	r, _ := http.NewRequest("GET", "/results/bids/whatever/whatever/whatever", bytes.NewReader(body))
 	w := httptest.NewRecorder()
+
 	srvcfg := config.Read()
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
 	sig.Write(body)
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
+
 	router.ServeHTTP(w, r)
 	status := w.Code
 	if status != http.StatusOK {
@@ -230,10 +307,12 @@ func TestResultsUnsupportedValidator(t *testing.T) {
 	router.HandleFunc("/results/{validator}/{user}/{repo}/{id}", Results).Methods("GET")
 	r, _ := http.NewRequest("GET", "/results/wtf/whatever/whatever/whatever", bytes.NewReader(body))
 	w := httptest.NewRecorder()
+
 	srvcfg := config.Read()
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
 	sig.Write(body)
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
+
 	router.ServeHTTP(w, r)
 	status := w.Code
 	if status != http.StatusOK {
@@ -247,10 +326,12 @@ func TestResultsIDNotSpecified(t *testing.T) {
 	router.HandleFunc("/results/{validator}/{user}/{repo}/", Results).Methods("GET")
 	r, _ := http.NewRequest("GET", "/results/bids/whatever/whatever/", bytes.NewReader(body))
 	w := httptest.NewRecorder()
+
 	srvcfg := config.Read()
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
 	sig.Write(body)
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
+
 	router.ServeHTTP(w, r)
 	status := w.Code
 	if status != http.StatusOK {
