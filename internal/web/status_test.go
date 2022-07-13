@@ -38,18 +38,11 @@ func TestStatusOK(t *testing.T) {
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
 
 	resdir := filepath.Join(resultfldr, "bids", username, reponame, srvcfg.Label.ResultsFolder)
-	err = os.MkdirAll(resdir, 0755)
+	filename := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
+	content := "wtf"
+	err = createTestResultDirs(resdir, filename, content)
 	if err != nil {
-		t.Fatalf("error creating results folder: %s", err.Error())
-	}
-	f, err := os.Create(filepath.Join(resdir, srvcfg.Label.ResultsBadge))
-	if err != nil {
-		t.Fatalf("error creating results file: %s", err.Error())
-	}
-	defer f.Close()
-	_, err = f.WriteString("wtf")
-	if err != nil {
-		t.Fatalf("error writing to results file: %s", err.Error())
+		t.Fatal(err.Error())
 	}
 
 	router.ServeHTTP(w, r)

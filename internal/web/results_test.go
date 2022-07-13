@@ -44,18 +44,11 @@ func TestResultsUnsupportedV2(t *testing.T) {
 	config.Set(srvcfg)
 
 	resdir := filepath.Join(resultfldr, "nix", username, reponame, id)
-	err = os.MkdirAll(resdir, 0755)
+	filename := filepath.Join(resdir, srvcfg.Label.ResultsFile)
+	content := `{"empty":"json"}`
+	err = createTestResultDirs(resdir, filename, content)
 	if err != nil {
-		t.Fatalf("error creating results directory: %s", err.Error())
-	}
-	f, err := os.Create(filepath.Join(resdir, srvcfg.Label.ResultsFile))
-	if err != nil {
-		t.Fatalf("error creating results file: %s", err.Error())
-	}
-	defer f.Close()
-	_, err = f.WriteString(`{"empty":"json"}`)
-	if err != nil {
-		t.Fatalf("error writing to results file: %s", err.Error())
+		t.Fatal(err.Error())
 	}
 
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
@@ -99,18 +92,11 @@ func TestResultsODML(t *testing.T) {
 	config.Set(srvcfg)
 
 	resdir := filepath.Join(resultfldr, "odml", username, reponame, id)
-	err = os.MkdirAll(resdir, 0755)
+	filename := filepath.Join(resdir, srvcfg.Label.ResultsFile)
+	content := `{"empty":"json"}`
+	err = createTestResultDirs(resdir, filename, content)
 	if err != nil {
-		t.Fatalf("error creating results folder: %s", err.Error())
-	}
-	f, err := os.Create(filepath.Join(resdir, srvcfg.Label.ResultsFile))
-	if err != nil {
-		t.Fatalf("error creating results file: %s", err.Error())
-	}
-	defer f.Close()
-	_, err = f.WriteString(`{"empty":"json"}`)
-	if err != nil {
-		t.Fatalf("error writing to results file: %s", err.Error())
+		t.Fatal(err.Error())
 	}
 
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
@@ -152,18 +138,11 @@ func TestResultsNIX(t *testing.T) {
 	config.Set(srvcfg)
 
 	resdir := filepath.Join(resultfldr, "nix", username, reponame, id)
-	err = os.MkdirAll(resdir, 0755)
+	filename := filepath.Join(resdir, srvcfg.Label.ResultsFile)
+	content := `{"empty":"json"}`
+	err = createTestResultDirs(resdir, filename, content)
 	if err != nil {
-		t.Fatalf("error creating results folder: %s", err.Error())
-	}
-	f, err := os.Create(filepath.Join(resdir, srvcfg.Label.ResultsFile))
-	if err != nil {
-		t.Fatalf("error creating results file: %s", err.Error())
-	}
-	defer f.Close()
-	_, err = f.WriteString(`{"empty":"json"}`)
-	if err != nil {
-		t.Fatalf("error writing to results file: %s", err.Error())
+		t.Fatal(err.Error())
 	}
 
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
@@ -205,18 +184,11 @@ func TestResultsInJSON(t *testing.T) {
 	config.Set(srvcfg)
 
 	resdir := filepath.Join(resultfldr, "bids", username, reponame, id)
-	err = os.MkdirAll(resdir, 0755)
+	filename := filepath.Join(resdir, srvcfg.Label.ResultsFile)
+	content := `{"empty":"json"}`
+	err = createTestResultDirs(resdir, filename, content)
 	if err != nil {
-		t.Fatalf("error creating results folder: %s", err.Error())
-	}
-	f, err := os.Create(filepath.Join(resdir, srvcfg.Label.ResultsFile))
-	if err != nil {
-		t.Fatalf("error creating results file: %s", err.Error())
-	}
-	defer f.Close()
-	_, err = f.WriteString(`{"empty":"json"}`)
-	if err != nil {
-		t.Fatalf("error writing to results file: %s", err.Error())
+		t.Fatal(err.Error())
 	}
 
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
@@ -258,18 +230,11 @@ func TestResultsInProgress(t *testing.T) {
 	config.Set(srvcfg)
 
 	resdir := filepath.Join(resultfldr, "bids", username, reponame, id)
-	err = os.MkdirAll(resdir, 0755)
+	filename := filepath.Join(resdir, srvcfg.Label.ResultsFile)
+	content := progressmsg
+	err = createTestResultDirs(resdir, filename, content)
 	if err != nil {
-		t.Fatalf("error creating results folder: %s", err.Error())
-	}
-	f, err := os.Create(filepath.Join(resdir, srvcfg.Label.ResultsFile))
-	if err != nil {
-		t.Fatalf("error creating results file: %s", err.Error())
-	}
-	defer f.Close()
-	_, err = f.WriteString(progressmsg)
-	if err != nil {
-		t.Fatalf("error writing to results file: %s", err.Error())
+		t.Fatal(err.Error())
 	}
 
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
@@ -310,18 +275,11 @@ func TestResultsSomeResults(t *testing.T) {
 	config.Set(srvcfg)
 
 	resdir := filepath.Join(resultfldr, "bids", username, reponame, id)
-	err = os.MkdirAll(resdir, 0755)
+	filename := filepath.Join(resdir, srvcfg.Label.ResultsFile)
+	content := "wtf"
+	err = createTestResultDirs(resdir, filename, content)
 	if err != nil {
-		t.Fatalf("error creating results folder: %s", err.Error())
-	}
-	f, err := os.Create(filepath.Join(resdir, srvcfg.Label.ResultsFile))
-	if err != nil {
-		t.Fatalf("error creating results file: %s", err.Error())
-	}
-	defer f.Close()
-	_, err = f.WriteString("wtf")
-	if err != nil {
-		t.Fatalf("error writing to results file: %s", err.Error())
+		t.Fatal(err.Error())
 	}
 
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
