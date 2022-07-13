@@ -14,6 +14,9 @@ import (
 )
 
 func TestHooksDisable(t *testing.T) {
+	username := "valid-testing"
+	reponame := "Testing"
+
 	body := []byte("{}")
 	router := mux.NewRouter()
 	router.HandleFunc("/repos/{user}/{repo}/{hookid}/disable", DisableHook).Methods("GET")
@@ -26,11 +29,14 @@ func TestHooksDisable(t *testing.T) {
 	router.ServeHTTP(w, r)
 	status := w.Code
 	if status != http.StatusFound {
-		t.Fatalf(`DisableHook(w http.ResponseWriter, r *http.Request) status code = %v`, status)
+		t.Fatalf("DisableHook(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }
 
 func TestHooksEnable(t *testing.T) {
+	username := "valid-testing"
+	reponame := "Testing"
+
 	body := []byte("{}")
 	router := mux.NewRouter()
 	router.HandleFunc("/repos/{user}/{repo}/{validator}/enable", EnableHook).Methods("GET")
@@ -43,6 +49,6 @@ func TestHooksEnable(t *testing.T) {
 	router.ServeHTTP(w, r)
 	status := w.Code
 	if status != http.StatusFound {
-		t.Fatalf(`EnableHook(w http.ResponseWriter, r *http.Request) status code = %v`, status)
+		t.Fatalf("EnableHook(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }

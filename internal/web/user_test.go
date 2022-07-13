@@ -9,15 +9,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	//"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
-	//"strings"
 	"testing"
 )
 
-// var password = "student"
 var weburl = "https://gin.dev.g-node.org:443"
 var giturl = "git@gin.dev.g-node.org:22"
 
@@ -64,11 +61,22 @@ func TestGetLoggedUserNameSessionDoesNotExists(t *testing.T) {
 }
 
 func TestGetLoggedUserNameOK(t *testing.T) {
+	tmpdir, err := ioutil.TempDir("", "TestGetLoggedUserNameOK")
+	if err != nil {
+		t.Fatalf("error creating temp dir: %s", err.Error())
+	}
+	defer os.RemoveAll(tmpdir)
+
+	tokenfldr := filepath.Join(tmpdir, "tokens")
+	err = os.MkdirAll(filepath.Join(tokenfldr, "by-sessionid"), 0755)
+	if err != nil {
+		t.Fatalf("error creating token dir: %s", err.Error())
+	}
+
 	srvcfg := config.Read()
-	tokens, _ := ioutil.TempDir("", "tokens")
-	srvcfg.Dir.Tokens = tokens
+	srvcfg.Dir.Tokens = tokenfldr
 	config.Set(srvcfg)
-	os.MkdirAll(filepath.Join(tokens, "by-sessionid"), 0755)
+
 	w := httptest.NewRecorder()
 	cookie := &http.Cookie{
 		Name:    srvcfg.Settings.CookieName,
@@ -81,7 +89,7 @@ func TestGetLoggedUserNameOK(t *testing.T) {
 		Username: "wtf_user",
 		Token:    "wtf_token",
 	}
-	err := saveToken(ut)
+	err = saveToken(ut)
 	if err != nil {
 		t.Fatalf("getLoggedUserName(r *http.Request) = %s", err.Error())
 	}
@@ -94,48 +102,6 @@ func TestGetLoggedUserNameOK(t *testing.T) {
 		t.Fatalf("getLoggedUserName(r *http.Request) = %q", q)
 	}
 }
-
-/*
-func TestUserDoLoginOK(t *testing.T) {
-	tokens, _ := ioutil.TempDir("", "tokens")
-	srvcfg := config.Read()
-	srvcfg.GINAddresses.WebURL = weburl
-	srvcfg.GINAddresses.GitURL = giturl
-	srvcfg.Dir.Tokens = tokens
-	config.Set(srvcfg)
-	tokendir := filepath.Join(tokens, "by-sessionid")
-	os.MkdirAll(tokendir, 0755)
-	sessionid, err := doLogin(username, password)
-	if sessionid == "" || err != nil {
-		t.Fatalf("doLogin(username, password) = %q, %s", sessionid, err.Error())
-	}
-}
-*/
-
-/*
-func TestUserLoginPost(t *testing.T) {
-	tokens, _ := ioutil.TempDir("", "tokens")
-	srvcfg := config.Read()
-	srvcfg.GINAddresses.WebURL = weburl
-	srvcfg.GINAddresses.GitURL = giturl
-	srvcfg.Dir.Tokens = tokens
-	config.Set(srvcfg)
-	tokendir := filepath.Join(tokens, "by-sessionid")
-	os.MkdirAll(tokendir, 0755)
-	v := make(url.Values)
-	v.Set("username", username)
-	v.Set("password", password)
-	router := mux.NewRouter()
-	router.HandleFunc("/login/{username}/{password}", LoginPost).Methods("POST")
-	r, _ := http.NewRequest("POST", filepath.Join("/login", username, password), strings.NewReader(v.Encode()))
-	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, r)
-	status := w.Code
-	if status != http.StatusFound {
-		t.Fatalf("LoginPost(w http.ResponseWriter, r *http.Request) status code = %d", status)
-	}
-}*/
 
 func TestUserLoginGet(t *testing.T) {
 	body := []byte("{}")
@@ -181,3 +147,67 @@ func TestUserLoginGetBadLayout(t *testing.T) {
 		t.Fatalf("LoginGet(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }
+
+/*
+// Refactor tests to remove the dev server dependency
+var password = "student"
+
+func TestUserDoLoginOK(t *testing.T) {
+	tmpdir, err := ioutil.TempDir("", "TestGetLoggedUserNameOK")
+	if err != nil {
+		t.Fatalf("error creating temp dir: %s", err.Error())
+	}
+	defer os.RemoveAll(tmpdir)
+
+	tokenfldr := filepath.Join(tmpdir, "tokens")
+	err = os.MkdirAll(filepath.Join(tokenfldr, "by-sessionid"), 0755)
+	if err != nil {
+		t.Fatalf("error creating token dir: %s", err.Error())
+	}
+
+	srvcfg := config.Read()
+	srvcfg.Dir.Tokens = tokenfldr
+	srvcfg.GINAddresses.WebURL = weburl
+	srvcfg.GINAddresses.GitURL = giturl
+	config.Set(srvcfg)
+
+	sessionid, err := doLogin(username, password)
+	if sessionid == "" || err != nil {
+		t.Fatalf("doLogin(username, password) = %q, %s", sessionid, err.Error())
+	}
+}
+
+func TestUserLoginPost(t *testing.T) {
+	tmpdir, err := ioutil.TempDir("", "TestGetLoggedUserNameOK")
+	if err != nil {
+		t.Fatalf("error creating temp dir: %s", err.Error())
+	}
+	defer os.RemoveAll(tmpdir)
+
+	tokenfldr := filepath.Join(tmpdir, "tokens")
+	err = os.MkdirAll(filepath.Join(tokenfldr, "by-sessionid"), 0755)
+	if err != nil {
+		t.Fatalf("error creating token dir: %s", err.Error())
+	}
+
+	srvcfg := config.Read()
+	srvcfg.Dir.Tokens = tokenfldr
+	srvcfg.GINAddresses.WebURL = weburl
+	srvcfg.GINAddresses.GitURL = giturl
+	config.Set(srvcfg)
+
+	v := make(url.Values)
+	v.Set("username", username)
+	v.Set("password", password)
+	router := mux.NewRouter()
+	router.HandleFunc("/login/{username}/{password}", LoginPost).Methods("POST")
+	r, _ := http.NewRequest("POST", filepath.Join("/login", username, password), strings.NewReader(v.Encode()))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, r)
+	status := w.Code
+	if status != http.StatusFound {
+		t.Fatalf("LoginPost(w http.ResponseWriter, r *http.Request) status code = %d", status)
+	}
+}*/
