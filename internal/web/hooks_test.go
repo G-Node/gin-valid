@@ -14,6 +14,9 @@ import (
 )
 
 func TestHooksDisable(t *testing.T) {
+	username := "valid-testing"
+	reponame := "Testing"
+
 	body := []byte("{}")
 	router := mux.NewRouter()
 	router.HandleFunc("/repos/{user}/{repo}/{hookid}/disable", DisableHook).Methods("GET")
@@ -31,6 +34,9 @@ func TestHooksDisable(t *testing.T) {
 }
 
 func TestHooksEnable(t *testing.T) {
+	username := "valid-testing"
+	reponame := "Testing"
+
 	body := []byte("{}")
 	router := mux.NewRouter()
 	router.HandleFunc("/repos/{user}/{repo}/{validator}/enable", EnableHook).Methods("GET")

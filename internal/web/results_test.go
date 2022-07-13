@@ -16,6 +16,9 @@ import (
 )
 
 func TestResultsUnsupportedV2(t *testing.T) {
+	username := "valid-testing"
+	reponame := "Testing"
+
 	id := "1"
 	content := `{"empty":"json"}`
 	body := []byte("{}")
@@ -45,6 +48,9 @@ func TestResultsUnsupportedV2(t *testing.T) {
 }
 
 func TestResultsODML(t *testing.T) {
+	username := "valid-testing"
+	reponame := "Testing"
+
 	id := "1"
 	content := `{"empty":"json"}`
 	body := []byte("{}")
@@ -74,6 +80,9 @@ func TestResultsODML(t *testing.T) {
 }
 
 func TestResultsNIX(t *testing.T) {
+	username := "valid-testing"
+	reponame := "Testing"
+
 	id := "1"
 	content := `{"empty":"json"}`
 	body := []byte("{}")
@@ -103,6 +112,9 @@ func TestResultsNIX(t *testing.T) {
 }
 
 func TestResultsInJSON(t *testing.T) {
+	username := "valid-testing"
+	reponame := "Testing"
+
 	id := "1"
 	content := `{"empty":"json"}`
 	body := []byte("{}")
@@ -132,6 +144,9 @@ func TestResultsInJSON(t *testing.T) {
 }
 
 func TestResultsInProgress(t *testing.T) {
+	username := "valid-testing"
+	reponame := "Testing"
+
 	id := "1"
 	content := progressmsg
 	body := []byte("{}")
@@ -161,6 +176,9 @@ func TestResultsInProgress(t *testing.T) {
 }
 
 func TestResultsSomeResults(t *testing.T) {
+	username := "valid-testing"
+	reponame := "Testing"
+
 	id := "1"
 	content := "wtf"
 	body := []byte("{}")

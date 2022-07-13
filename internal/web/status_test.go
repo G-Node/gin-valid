@@ -16,6 +16,9 @@ import (
 )
 
 func TestStatusOK(t *testing.T) {
+	username := "valid-testing"
+	reponame := "Testing"
+
 	content := "wtf"
 	body := []byte("{}")
 	router := mux.NewRouter()

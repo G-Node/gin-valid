@@ -20,9 +20,6 @@ import (
 	"time"
 )
 
-var username = "valid-testing"
-var reponame = "Testing"
-
 func TestValiateBadConfig(t *testing.T) {
 	valcfg, err := handleValidationConfig("wtf")
 	if err == nil {
@@ -208,6 +205,9 @@ func TestValidatePub(t *testing.T) {
 }
 
 func TestValidateRepoDoesNotExists(t *testing.T) {
+	username := "valid-testing"
+	reponame := "Testing"
+
 	token2 := "wtf"
 	body := []byte("{}")
 	router := mux.NewRouter()
