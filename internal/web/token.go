@@ -18,10 +18,10 @@ func saveToken(ut gweb.UserToken) error {
 	tokendir, _ := filepath.Abs(cfg.Dir.Tokens)
 	filename := filepath.Join(tokendir, ut.Username)
 	tokenfile, err := os.Create(filename)
-	defer tokenfile.Close()
 	if err != nil {
 		return err
 	}
+	defer tokenfile.Close()
 	encoder := gob.NewEncoder(tokenfile)
 	return encoder.Encode(ut)
 }
