@@ -8,8 +8,3 @@ func IsValidPort(port string) bool {
 	_, err := strconv.ParseUint(port, 10, 16)
 	return err == nil
 }
-
-func isNumeric(str string) bool {
-	_, err := strconv.Atoi(str)
-	return err == nil
-}
