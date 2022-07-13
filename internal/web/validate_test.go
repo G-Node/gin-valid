@@ -55,7 +55,7 @@ func TestValidateNotYAML(t *testing.T) {
 
 func TestValidateGoodConfig(t *testing.T) {
 	f, _ := os.Create("testing-config.json")
-	f.WriteString("empty: \"true\"")
+	f.WriteString(`empty: "true"`)
 	f.Close()
 	valcfg, err := handleValidationConfig("testing-config.json")
 	os.RemoveAll("testing-config.json")
@@ -206,9 +206,6 @@ func TestValidatePub(t *testing.T) {
 		t.Fatalf("Validate(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }
-
-/*
- */
 
 func TestValidateRepoDoesNotExists(t *testing.T) {
 	token2 := "wtf"

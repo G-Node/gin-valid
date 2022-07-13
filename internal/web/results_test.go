@@ -17,7 +17,7 @@ import (
 
 func TestResultsUnsupportedV2(t *testing.T) {
 	id := "1"
-	content := "{\"empty\":\"json\"}"
+	content := `{"empty":"json"}`
 	body := []byte("{}")
 	router := mux.NewRouter()
 	router.HandleFunc("/results/{validator}/{user}/{repo}/{id}", Results).Methods("GET")
@@ -40,13 +40,13 @@ func TestResultsUnsupportedV2(t *testing.T) {
 	config.Set(srvcfg)
 	status := w.Code
 	if status != http.StatusOK {
-		t.Fatalf(`Results(w http.ResponseWriter, r *http.Request) status code = %v`, status)
+		t.Fatalf("Results(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }
 
 func TestResultsODML(t *testing.T) {
 	id := "1"
-	content := "{\"empty\":\"json\"}"
+	content := `{"empty":"json"}`
 	body := []byte("{}")
 	router := mux.NewRouter()
 	router.HandleFunc("/results/{validator}/{user}/{repo}/{id}", Results).Methods("GET")
@@ -69,13 +69,13 @@ func TestResultsODML(t *testing.T) {
 	router.ServeHTTP(w, r)
 	status := w.Code
 	if status != http.StatusOK {
-		t.Fatalf(`Results(w http.ResponseWriter, r *http.Request) status code = %v`, status)
+		t.Fatalf("Results(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }
 
 func TestResultsNIX(t *testing.T) {
 	id := "1"
-	content := "{\"empty\":\"json\"}"
+	content := `{"empty":"json"}`
 	body := []byte("{}")
 	router := mux.NewRouter()
 	router.HandleFunc("/results/{validator}/{user}/{repo}/{id}", Results).Methods("GET")
@@ -98,13 +98,13 @@ func TestResultsNIX(t *testing.T) {
 	router.ServeHTTP(w, r)
 	status := w.Code
 	if status != http.StatusOK {
-		t.Fatalf(`Results(w http.ResponseWriter, r *http.Request) status code = %v`, status)
+		t.Fatalf("Results(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }
 
 func TestResultsInJSON(t *testing.T) {
 	id := "1"
-	content := "{\"empty\":\"json\"}"
+	content := `{"empty":"json"}`
 	body := []byte("{}")
 	router := mux.NewRouter()
 	router.HandleFunc("/results/{validator}/{user}/{repo}/{id}", Results).Methods("GET")
@@ -127,7 +127,7 @@ func TestResultsInJSON(t *testing.T) {
 	router.ServeHTTP(w, r)
 	status := w.Code
 	if status != http.StatusOK {
-		t.Fatalf(`Results(w http.ResponseWriter, r *http.Request) status code = %v`, status)
+		t.Fatalf("Results(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }
 
@@ -156,7 +156,7 @@ func TestResultsInProgress(t *testing.T) {
 	router.ServeHTTP(w, r)
 	status := w.Code
 	if status != http.StatusOK {
-		t.Fatalf(`Results(w http.ResponseWriter, r *http.Request) status code = %v`, status)
+		t.Fatalf("Results(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }
 
@@ -185,7 +185,7 @@ func TestResultsSomeResults(t *testing.T) {
 	router.ServeHTTP(w, r)
 	status := w.Code
 	if status != http.StatusOK {
-		t.Fatalf(`Results(w http.ResponseWriter, r *http.Request) status code = %v`, status)
+		t.Fatalf("Results(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }
 
@@ -202,7 +202,7 @@ func TestResultsNoResults(t *testing.T) {
 	router.ServeHTTP(w, r)
 	status := w.Code
 	if status != http.StatusOK {
-		t.Fatalf(`Results(w http.ResponseWriter, r *http.Request) status code = %v`, status)
+		t.Fatalf("Results(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }
 
@@ -219,7 +219,7 @@ func TestResultsUnsupportedValidator(t *testing.T) {
 	router.ServeHTTP(w, r)
 	status := w.Code
 	if status != http.StatusOK {
-		t.Fatalf(`Results(w http.ResponseWriter, r *http.Request) status code = %v`, status)
+		t.Fatalf("Results(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }
 
@@ -236,6 +236,6 @@ func TestResultsIDNotSpecified(t *testing.T) {
 	router.ServeHTTP(w, r)
 	status := w.Code
 	if status != http.StatusOK {
-		t.Fatalf(`Results(w http.ResponseWriter, r *http.Request) status code = %v`, status)
+		t.Fatalf("Results(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }

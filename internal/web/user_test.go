@@ -9,15 +9,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	//"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
-	//"strings"
 	"testing"
 )
 
-// var password = "student"
 var weburl = "https://gin.dev.g-node.org:443"
 var giturl = "git@gin.dev.g-node.org:22"
 
@@ -95,48 +92,6 @@ func TestGetLoggedUserNameOK(t *testing.T) {
 	}
 }
 
-/*
-func TestUserDoLoginOK(t *testing.T) {
-	tokens, _ := ioutil.TempDir("", "tokens")
-	srvcfg := config.Read()
-	srvcfg.GINAddresses.WebURL = weburl
-	srvcfg.GINAddresses.GitURL = giturl
-	srvcfg.Dir.Tokens = tokens
-	config.Set(srvcfg)
-	tokendir := filepath.Join(tokens, "by-sessionid")
-	os.MkdirAll(tokendir, 0755)
-	sessionid, err := doLogin(username, password)
-	if sessionid == "" || err != nil {
-		t.Fatalf("doLogin(username, password) = %q, %s", sessionid, err.Error())
-	}
-}
-*/
-
-/*
-func TestUserLoginPost(t *testing.T) {
-	tokens, _ := ioutil.TempDir("", "tokens")
-	srvcfg := config.Read()
-	srvcfg.GINAddresses.WebURL = weburl
-	srvcfg.GINAddresses.GitURL = giturl
-	srvcfg.Dir.Tokens = tokens
-	config.Set(srvcfg)
-	tokendir := filepath.Join(tokens, "by-sessionid")
-	os.MkdirAll(tokendir, 0755)
-	v := make(url.Values)
-	v.Set("username", username)
-	v.Set("password", password)
-	router := mux.NewRouter()
-	router.HandleFunc("/login/{username}/{password}", LoginPost).Methods("POST")
-	r, _ := http.NewRequest("POST", filepath.Join("/login", username, password), strings.NewReader(v.Encode()))
-	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, r)
-	status := w.Code
-	if status != http.StatusFound {
-		t.Fatalf("LoginPost(w http.ResponseWriter, r *http.Request) status code = %d", status)
-	}
-}*/
-
 func TestUserLoginGet(t *testing.T) {
 	body := []byte("{}")
 	router := mux.NewRouter()
@@ -181,3 +136,48 @@ func TestUserLoginGetBadLayout(t *testing.T) {
 		t.Fatalf("LoginGet(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }
+
+/*
+// Refactor tests to remove the dev server dependency
+var password = "student"
+
+func TestUserDoLoginOK(t *testing.T) {
+	tokens, _ := ioutil.TempDir("", "tokens")
+	srvcfg := config.Read()
+	srvcfg.GINAddresses.WebURL = weburl
+	srvcfg.GINAddresses.GitURL = giturl
+	srvcfg.Dir.Tokens = tokens
+	config.Set(srvcfg)
+	tokendir := filepath.Join(tokens, "by-sessionid")
+	os.MkdirAll(tokendir, 0755)
+	sessionid, err := doLogin(username, password)
+	if sessionid == "" || err != nil {
+		t.Fatalf("doLogin(username, password) = %q, %s", sessionid, err.Error())
+	}
+}
+*/
+
+/*
+func TestUserLoginPost(t *testing.T) {
+	tokens, _ := ioutil.TempDir("", "tokens")
+	srvcfg := config.Read()
+	srvcfg.GINAddresses.WebURL = weburl
+	srvcfg.GINAddresses.GitURL = giturl
+	srvcfg.Dir.Tokens = tokens
+	config.Set(srvcfg)
+	tokendir := filepath.Join(tokens, "by-sessionid")
+	os.MkdirAll(tokendir, 0755)
+	v := make(url.Values)
+	v.Set("username", username)
+	v.Set("password", password)
+	router := mux.NewRouter()
+	router.HandleFunc("/login/{username}/{password}", LoginPost).Methods("POST")
+	r, _ := http.NewRequest("POST", filepath.Join("/login", username, password), strings.NewReader(v.Encode()))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	status := w.Code
+	if status != http.StatusFound {
+		t.Fatalf("LoginPost(w http.ResponseWriter, r *http.Request) status code = %d", status)
+	}
+}*/

@@ -26,7 +26,7 @@ func TestHooksDisable(t *testing.T) {
 	router.ServeHTTP(w, r)
 	status := w.Code
 	if status != http.StatusFound {
-		t.Fatalf(`DisableHook(w http.ResponseWriter, r *http.Request) status code = %v`, status)
+		t.Fatalf("DisableHook(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }
 
@@ -43,6 +43,6 @@ func TestHooksEnable(t *testing.T) {
 	router.ServeHTTP(w, r)
 	status := w.Code
 	if status != http.StatusFound {
-		t.Fatalf(`EnableHook(w http.ResponseWriter, r *http.Request) status code = %v`, status)
+		t.Fatalf("EnableHook(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }

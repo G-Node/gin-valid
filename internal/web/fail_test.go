@@ -15,7 +15,7 @@ func TestFailFailedToParse(t *testing.T) {
 	templates.Layout = original
 	status := w.Code
 	if status != http.StatusOK {
-		t.Fatalf(`fail(w http.ResponseWriter, status int, message string) status code = %v`, status)
+		t.Fatalf("fail(w http.ResponseWriter, status int, message string) status code = %d", status)
 	}
 }
 
@@ -27,6 +27,6 @@ func TestFailFailedToParseFailPage(t *testing.T) {
 	templates.Fail = original
 	status := w.Code
 	if status != http.StatusOK {
-		t.Fatalf(`fail(w http.ResponseWriter, status int, message string) status code = %v`, status)
+		t.Fatalf("fail(w http.ResponseWriter, status int, message string) status code = %d", status)
 	}
 }

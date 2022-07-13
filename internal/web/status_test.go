@@ -35,7 +35,7 @@ func TestStatusOK(t *testing.T) {
 	router.ServeHTTP(w, r)
 	status := w.Code
 	if status != http.StatusOK {
-		t.Fatalf(`Status(w http.ResponseWriter, r *http.Request) status code = %v`, status)
+		t.Fatalf("Status(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }
 
@@ -52,7 +52,7 @@ func TestStatusNoConent(t *testing.T) {
 	router.ServeHTTP(w, r)
 	status := w.Code
 	if status != http.StatusOK {
-		t.Fatalf(`Status(w http.ResponseWriter, r *http.Request) status code = %v`, status)
+		t.Fatalf("Status(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }
 
@@ -69,6 +69,6 @@ func TestStatusUnsupportedValidator(t *testing.T) {
 	router.ServeHTTP(w, r)
 	status := w.Code
 	if status != http.StatusOK {
-		t.Fatalf(`Status(w http.ResponseWriter, r *http.Request) status code = %v`, status)
+		t.Fatalf("Status(w http.ResponseWriter, r *http.Request) status code = %d", status)
 	}
 }
