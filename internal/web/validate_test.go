@@ -31,15 +31,26 @@ func TestValiateBadConfig(t *testing.T) {
 }
 
 func TestValidateNotYAML(t *testing.T) {
-	f, _ := os.Create("testing-config.json")
-	f.WriteString("foo: somebody said I should put a colon here: so I did")
-	f.Close()
-	valcfg, err := handleValidationConfig("testing-config.json")
-	os.RemoveAll("testing-config.json")
-	if err == nil {
-		t.Fatalf("handleValidationConfig(cfgpath string) = %v", valcfg)
+	tmpdir, err := ioutil.TempDir("", "TestValidateNotYAML")
+	if err != nil {
+		t.Fatalf("error creating temp dir: %s", err.Error())
 	}
+	testfile := filepath.Join(tmpdir, "testing-config.json")
+	f, err := os.Create(testfile)
+	if err != nil {
+		t.Fatalf("error creating json file: %s", err.Error())
+	}
+	defer f.Close()
 
+	_, err = f.WriteString("foo: somebody said I should put a colon here: so I did")
+	if err != nil {
+		t.Fatalf("error writing to testfile: %s", err.Error())
+	}
+	valcfg, err := handleValidationConfig(testfile)
+	if err == nil {
+		t.Fatalf("expected error validating config, but got none; cfg: %v", valcfg)
+	}
+	defer os.RemoveAll(tmpdir)
 }
 
 func TestValidateGoodConfig(t *testing.T) {
