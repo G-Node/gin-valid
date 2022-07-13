@@ -30,10 +30,9 @@ func TestResultsUnsupportedV2(t *testing.T) {
 
 	username := "valid-testing"
 	reponame := "Testing"
-
 	id := "1"
-	content := `{"empty":"json"}`
 	body := []byte("{}")
+
 	router := mux.NewRouter()
 	router.HandleFunc("/results/{validator}/{user}/{repo}/{id}", Results).Methods("GET")
 	r, _ := http.NewRequest("GET", filepath.Join("/results/wtf", username, "/", reponame, "/", id), bytes.NewReader(body))
@@ -44,10 +43,20 @@ func TestResultsUnsupportedV2(t *testing.T) {
 	srvcfg.Dir.Result = resultfldr
 	config.Set(srvcfg)
 
-	os.MkdirAll(filepath.Join(resultfldr, "nix", username, reponame, id), 0755)
-	f, _ := os.Create(filepath.Join(resultfldr, "nix", username, reponame, id, srvcfg.Label.ResultsFile))
+	resdir := filepath.Join(resultfldr, "nix", username, reponame, id)
+	err = os.MkdirAll(resdir, 0755)
+	if err != nil {
+		t.Fatalf("error creating results directory: %s", err.Error())
+	}
+	f, err := os.Create(filepath.Join(resdir, srvcfg.Label.ResultsFile))
+	if err != nil {
+		t.Fatalf("error creating results file: %s", err.Error())
+	}
 	defer f.Close()
-	f.WriteString(content)
+	_, err = f.WriteString(`{"empty":"json"}`)
+	if err != nil {
+		t.Fatalf("error writing to results file: %s", err.Error())
+	}
 
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
 	sig.Write(body)
@@ -77,9 +86,7 @@ func TestResultsODML(t *testing.T) {
 
 	username := "valid-testing"
 	reponame := "Testing"
-
 	id := "1"
-	content := `{"empty":"json"}`
 	body := []byte("{}")
 
 	router := mux.NewRouter()
@@ -91,10 +98,20 @@ func TestResultsODML(t *testing.T) {
 	srvcfg.Dir.Result = resultfldr
 	config.Set(srvcfg)
 
-	os.MkdirAll(filepath.Join(resultfldr, "odml", username, reponame, id), 0755)
-	f, _ := os.Create(filepath.Join(resultfldr, "odml", username, reponame, id, srvcfg.Label.ResultsFile))
+	resdir := filepath.Join(resultfldr, "odml", username, reponame, id)
+	err = os.MkdirAll(resdir, 0755)
+	if err != nil {
+		t.Fatalf("error creating results folder: %s", err.Error())
+	}
+	f, err := os.Create(filepath.Join(resdir, srvcfg.Label.ResultsFile))
+	if err != nil {
+		t.Fatalf("error creating results file: %s", err.Error())
+	}
 	defer f.Close()
-	f.WriteString(content)
+	_, err = f.WriteString(`{"empty":"json"}`)
+	if err != nil {
+		t.Fatalf("error writing to results file: %s", err.Error())
+	}
 
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
 	sig.Write(body)
@@ -122,10 +139,9 @@ func TestResultsNIX(t *testing.T) {
 
 	username := "valid-testing"
 	reponame := "Testing"
-
 	id := "1"
-	content := `{"empty":"json"}`
 	body := []byte("{}")
+
 	router := mux.NewRouter()
 	router.HandleFunc("/results/{validator}/{user}/{repo}/{id}", Results).Methods("GET")
 	r, _ := http.NewRequest("GET", filepath.Join("/results/nix", username, "/", reponame, "/", id), bytes.NewReader(body))
@@ -135,10 +151,20 @@ func TestResultsNIX(t *testing.T) {
 	srvcfg.Dir.Result = resultfldr
 	config.Set(srvcfg)
 
-	os.MkdirAll(filepath.Join(resultfldr, "nix", username, reponame, id), 0755)
-	f, _ := os.Create(filepath.Join(resultfldr, "nix", username, reponame, id, srvcfg.Label.ResultsFile))
+	resdir := filepath.Join(resultfldr, "nix", username, reponame, id)
+	err = os.MkdirAll(resdir, 0755)
+	if err != nil {
+		t.Fatalf("error creating results folder: %s", err.Error())
+	}
+	f, err := os.Create(filepath.Join(resdir, srvcfg.Label.ResultsFile))
+	if err != nil {
+		t.Fatalf("error creating results file: %s", err.Error())
+	}
 	defer f.Close()
-	f.WriteString(content)
+	_, err = f.WriteString(`{"empty":"json"}`)
+	if err != nil {
+		t.Fatalf("error writing to results file: %s", err.Error())
+	}
 
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
 	sig.Write(body)
@@ -166,10 +192,9 @@ func TestResultsInJSON(t *testing.T) {
 
 	username := "valid-testing"
 	reponame := "Testing"
-
 	id := "1"
-	content := `{"empty":"json"}`
 	body := []byte("{}")
+
 	router := mux.NewRouter()
 	router.HandleFunc("/results/{validator}/{user}/{repo}/{id}", Results).Methods("GET")
 	r, _ := http.NewRequest("GET", filepath.Join("/results/bids", username, "/", reponame, "/", id), bytes.NewReader(body))
@@ -179,10 +204,20 @@ func TestResultsInJSON(t *testing.T) {
 	srvcfg.Dir.Result = resultfldr
 	config.Set(srvcfg)
 
-	os.MkdirAll(filepath.Join(resultfldr, "bids", username, reponame, id), 0755)
-	f, _ := os.Create(filepath.Join(resultfldr, "bids", username, reponame, id, srvcfg.Label.ResultsFile))
+	resdir := filepath.Join(resultfldr, "bids", username, reponame, id)
+	err = os.MkdirAll(resdir, 0755)
+	if err != nil {
+		t.Fatalf("error creating results folder: %s", err.Error())
+	}
+	f, err := os.Create(filepath.Join(resdir, srvcfg.Label.ResultsFile))
+	if err != nil {
+		t.Fatalf("error creating results file: %s", err.Error())
+	}
 	defer f.Close()
-	f.WriteString(content)
+	_, err = f.WriteString(`{"empty":"json"}`)
+	if err != nil {
+		t.Fatalf("error writing to results file: %s", err.Error())
+	}
 
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
 	sig.Write(body)
@@ -210,9 +245,8 @@ func TestResultsInProgress(t *testing.T) {
 
 	username := "valid-testing"
 	reponame := "Testing"
-
 	id := "1"
-	content := progressmsg
+
 	body := []byte("{}")
 	router := mux.NewRouter()
 	router.HandleFunc("/results/{validator}/{user}/{repo}/{id}", Results).Methods("GET")
@@ -223,10 +257,20 @@ func TestResultsInProgress(t *testing.T) {
 	srvcfg.Dir.Result = resultfldr
 	config.Set(srvcfg)
 
-	os.MkdirAll(filepath.Join(resultfldr, "bids", username, reponame, id), 0755)
-	f, _ := os.Create(filepath.Join(resultfldr, "bids", username, reponame, id, srvcfg.Label.ResultsFile))
+	resdir := filepath.Join(resultfldr, "bids", username, reponame, id)
+	err = os.MkdirAll(resdir, 0755)
+	if err != nil {
+		t.Fatalf("error creating results folder: %s", err.Error())
+	}
+	f, err := os.Create(filepath.Join(resdir, srvcfg.Label.ResultsFile))
+	if err != nil {
+		t.Fatalf("error creating results file: %s", err.Error())
+	}
 	defer f.Close()
-	f.WriteString(content)
+	_, err = f.WriteString(progressmsg)
+	if err != nil {
+		t.Fatalf("error writing to results file: %s", err.Error())
+	}
 
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
 	sig.Write(body)
@@ -253,10 +297,9 @@ func TestResultsSomeResults(t *testing.T) {
 
 	username := "valid-testing"
 	reponame := "Testing"
-
 	id := "1"
-	content := "wtf"
 	body := []byte("{}")
+
 	router := mux.NewRouter()
 	router.HandleFunc("/results/{validator}/{user}/{repo}/{id}", Results).Methods("GET")
 	r, _ := http.NewRequest("GET", filepath.Join("/results/bids", username, "/", reponame, "/", id), bytes.NewReader(body))
@@ -266,10 +309,20 @@ func TestResultsSomeResults(t *testing.T) {
 	srvcfg.Dir.Result = resultfldr
 	config.Set(srvcfg)
 
-	os.MkdirAll(filepath.Join(resultfldr, "bids", username, reponame, id), 0755)
-	f, _ := os.Create(filepath.Join(resultfldr, "bids", username, reponame, id, srvcfg.Label.ResultsFile))
+	resdir := filepath.Join(resultfldr, "bids", username, reponame, id)
+	err = os.MkdirAll(resdir, 0755)
+	if err != nil {
+		t.Fatalf("error creating results folder: %s", err.Error())
+	}
+	f, err := os.Create(filepath.Join(resdir, srvcfg.Label.ResultsFile))
+	if err != nil {
+		t.Fatalf("error creating results file: %s", err.Error())
+	}
 	defer f.Close()
-	f.WriteString(content)
+	_, err = f.WriteString("wtf")
+	if err != nil {
+		t.Fatalf("error writing to results file: %s", err.Error())
+	}
 
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
 	sig.Write(body)

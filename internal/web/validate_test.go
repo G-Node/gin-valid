@@ -17,7 +17,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 )
 
 func TestValiateBadConfig(t *testing.T) {
@@ -64,8 +63,11 @@ func TestValidateGoodConfig(t *testing.T) {
 		t.Fatalf("error creating json file: %s", err.Error())
 	}
 	defer f.Close()
+	_, err = f.WriteString(`empty: "true"`)
+	if err != nil {
+		t.Fatalf("error writing to json file: %s", err.Error())
+	}
 
-	f.WriteString(`empty: "true"`)
 	valcfg, err := handleValidationConfig(testfile)
 	if err != nil {
 		t.Fatalf("handleValidationConfig(cfgpath string) = %v, %s", valcfg, err.Error())
@@ -107,7 +109,7 @@ func TestValidateBIDSOK(t *testing.T) {
 	}
 
 	tempdataset := filepath.Join(tmpdir, "tempdataset")
-	err = os.Mkdir(tempdataset, 0755)
+	err = os.MkdirAll(filepath.Join(tempdataset, "bids_example"), 0755)
 	if err != nil {
 		t.Fatalf("error creating tempdataset dir: %s", err.Error())
 	}
@@ -123,11 +125,18 @@ func TestValidateBIDSOK(t *testing.T) {
 		t.Fatalf("validateBIDS(valroot, resdir string) = %s", err.Error())
 	}
 
-	os.Mkdir(filepath.Join(tempdataset, "bids_example"), 0755)
 	srvcfg := config.Read()
 	srvcfg.Dir.Result = resultfldr
 	config.Set(srvcfg)
-	validateBIDS(tempdataset, resultfldr)
+
+	// This will fail if the validator is not available.
+	// Keep a workaround for now to check for other potential errors.
+	err = validateBIDS(tempdataset, resultfldr)
+	if err != nil {
+		if !strings.Contains(err.Error(), "executable file not found in $PATH") {
+			t.Fatalf("error on validateODML: %s", err.Error())
+		}
+	}
 }
 
 func TestValidateNIXOK(t *testing.T) {
@@ -144,7 +153,7 @@ func TestValidateNIXOK(t *testing.T) {
 	}
 
 	tempdataset := filepath.Join(tmpdir, "tempdataset")
-	err = os.Mkdir(tempdataset, 0755)
+	err = os.MkdirAll(filepath.Join(tempdataset, ".git"), 0755)
 	if err != nil {
 		t.Fatalf("error creating tempdataset dir: %s", err.Error())
 	}
@@ -158,7 +167,6 @@ func TestValidateNIXOK(t *testing.T) {
 		t.Fatalf("validateNIX(valroot, resdir string) = %s", err.Error())
 	}
 
-	os.Mkdir(filepath.Join(tempdataset, ".git"), 0755)
 	nix = append([]byte("WTF_this_will_not_work"), nix...)
 	err = ioutil.WriteFile(filepath.Join(tempdataset, ".git", "nixdata_donottest.nix"), nix, 0755)
 	if err != nil {
@@ -168,7 +176,15 @@ func TestValidateNIXOK(t *testing.T) {
 	srvcfg := config.Read()
 	srvcfg.Dir.Result = resultfldr
 	config.Set(srvcfg)
-	validateNIX(tempdataset, resultfldr)
+
+	// This will fail if the validator is not available.
+	// Keep a workaround for now to check for other potential errors.
+	err = validateNIX(tempdataset, resultfldr)
+	if err != nil {
+		if !strings.Contains(err.Error(), "executable file not found in $PATH") {
+			t.Fatalf("error on validateODML: %s", err.Error())
+		}
+	}
 }
 
 func TestValidateODMLOK(t *testing.T) {
@@ -185,7 +201,7 @@ func TestValidateODMLOK(t *testing.T) {
 	}
 
 	tempdataset := filepath.Join(tmpdir, "tempdataset")
-	err = os.Mkdir(tempdataset, 0755)
+	err = os.MkdirAll(filepath.Join(tempdataset, ".git"), 0755)
 	if err != nil {
 		t.Fatalf("error creating tempdataset dir: %s", err.Error())
 	}
@@ -199,7 +215,6 @@ func TestValidateODMLOK(t *testing.T) {
 		t.Fatalf("validateODML(valroot, resdir string) = %s", err.Error())
 	}
 
-	os.Mkdir(filepath.Join(tempdataset, ".git"), 0755)
 	odml = append([]byte("WTF_this_will_not_work"), odml...)
 	err = ioutil.WriteFile(filepath.Join(tempdataset, ".git", "odmldata_donottest.odml"), odml, 0755)
 	if err != nil {
@@ -209,7 +224,15 @@ func TestValidateODMLOK(t *testing.T) {
 	srvcfg := config.Read()
 	srvcfg.Dir.Result = resultfldr
 	config.Set(srvcfg)
-	validateODML(tempdataset, resultfldr)
+
+	// This will fail if the validator is not available.
+	// Keep a workaround for now to check for other potential errors.
+	err = validateODML(tempdataset, resultfldr)
+	if err != nil {
+		if !strings.Contains(err.Error(), "executable file not found in $PATH") {
+			t.Fatalf("error on validateODML: %s", err.Error())
+		}
+	}
 }
 
 func TestValidatePubBrokenPubValidate(t *testing.T) {
@@ -217,6 +240,7 @@ func TestValidatePubBrokenPubValidate(t *testing.T) {
 	templates.PubValidate = "{{ WTF? }"
 	srvcfg := config.Read()
 	body := []byte("{}")
+
 	router := mux.NewRouter()
 	router.HandleFunc("/pubvalidate", PubValidateGet).Methods("GET")
 	r, _ := http.NewRequest("GET", "/pubvalidate", bytes.NewReader(body))
@@ -224,6 +248,7 @@ func TestValidatePubBrokenPubValidate(t *testing.T) {
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
 	sig.Write(body)
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
+
 	router.ServeHTTP(w, r)
 	templates.PubValidate = original
 	status := w.Code
@@ -237,6 +262,7 @@ func TestValidatePubBrokenLayout(t *testing.T) {
 	templates.Layout = "{{ WTF? }"
 	srvcfg := config.Read()
 	body := []byte("{}")
+
 	router := mux.NewRouter()
 	router.HandleFunc("/pubvalidate", PubValidateGet).Methods("GET")
 	r, _ := http.NewRequest("GET", "/pubvalidate", bytes.NewReader(body))
@@ -244,6 +270,7 @@ func TestValidatePubBrokenLayout(t *testing.T) {
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
 	sig.Write(body)
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
+
 	router.ServeHTTP(w, r)
 	templates.Layout = original
 	status := w.Code
@@ -255,6 +282,7 @@ func TestValidatePubBrokenLayout(t *testing.T) {
 func TestValidatePub(t *testing.T) {
 	srvcfg := config.Read()
 	body := []byte("{}")
+
 	router := mux.NewRouter()
 	router.HandleFunc("/pubvalidate", PubValidateGet).Methods("GET")
 	r, _ := http.NewRequest("GET", "/pubvalidate", bytes.NewReader(body))
@@ -262,6 +290,7 @@ func TestValidatePub(t *testing.T) {
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
 	sig.Write(body)
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
+
 	router.ServeHTTP(w, r)
 	status := w.Code
 	if status != http.StatusOK {
@@ -310,8 +339,14 @@ func TestValidateRepoDoesNotExists(t *testing.T) {
 	var tok gweb.UserToken
 	tok.Username = username
 	tok.Token = token
-	saveToken(tok)
-	linkToRepo(username, filepath.Join(username, "/", reponame))
+	err = saveToken(tok)
+	if err != nil {
+		t.Fatalf("error creating token: %s", err.Error())
+	}
+	err = linkToRepo(username, filepath.Join(username, "/", reponame))
+	if err != nil {
+		t.Fatalf("error linking token to repo: %s", err.Error())
+	}
 
 	r, _ := http.NewRequest("POST", filepath.Join("/validate/bids/", username, "/", reponame), bytes.NewReader(body))
 	w := httptest.NewRecorder()
@@ -320,7 +355,6 @@ func TestValidateRepoDoesNotExists(t *testing.T) {
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
 	router.ServeHTTP(w, r)
 
-	time.Sleep(5 * time.Second) // TODO HACK
 	status := w.Code
 	if status != http.StatusNotFound {
 		t.Fatalf("Validate(w http.ResponseWriter, r *http.Request) status code = %d", status)
@@ -329,14 +363,16 @@ func TestValidateRepoDoesNotExists(t *testing.T) {
 
 func TestValidateBadToken(t *testing.T) {
 	body := []byte("{}")
+	srvcfg := config.Read()
+
 	router := mux.NewRouter()
 	router.HandleFunc("/validate/{validator}/{user}/{repo}", Validate).Methods("POST")
 	r, _ := http.NewRequest("POST", "/validate/bids/whatever/whatever", bytes.NewReader(body))
 	w := httptest.NewRecorder()
-	srvcfg := config.Read()
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
 	sig.Write(body)
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
+
 	router.ServeHTTP(w, r)
 	status := w.Code
 	if status != http.StatusUnauthorized {
@@ -346,14 +382,16 @@ func TestValidateBadToken(t *testing.T) {
 
 func TestValidateUnsupportedValidator(t *testing.T) {
 	body := []byte("{}")
-	r, _ := http.NewRequest("GET", "wtf", bytes.NewReader(body))
 	srvcfg := config.Read()
 	srvcfg.Settings.HookSecret = "hooksecret"
 	config.Set(srvcfg)
+
+	r, _ := http.NewRequest("GET", "wtf", bytes.NewReader(body))
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
 	sig.Write(body)
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
 	w := httptest.NewRecorder()
+
 	Validate(w, r)
 	status := w.Code
 	if status != http.StatusNotFound {
@@ -362,12 +400,14 @@ func TestValidateUnsupportedValidator(t *testing.T) {
 }
 
 func TestValidateHookSecretFailed(t *testing.T) {
-	r, _ := http.NewRequest("GET", "wtf", strings.NewReader("{}"))
 	srvcfg := config.Read()
 	srvcfg.Settings.HookSecret = "hooksecret"
 	config.Set(srvcfg)
+
+	r, _ := http.NewRequest("GET", "wtf", strings.NewReader("{}"))
 	r.Header.Add("X-Gogs-Signature", "wtf")
 	w := httptest.NewRecorder()
+
 	Validate(w, r)
 	status := w.Code
 	if status != http.StatusBadRequest {
@@ -378,6 +418,7 @@ func TestValidateHookSecretFailed(t *testing.T) {
 func TestValidateBodyNotJSON(t *testing.T) {
 	r, _ := http.NewRequest("GET", "wtf", strings.NewReader("wtf"))
 	w := httptest.NewRecorder()
+
 	Validate(w, r)
 	status := w.Code
 	if status != http.StatusBadRequest {
@@ -395,6 +436,7 @@ func TestValidateBadBody(t *testing.T) {
 	testRequest := httptest.NewRequest(http.MethodPost, "/something", errReader(0))
 	w := httptest.NewRecorder()
 	Validate(w, testRequest)
+
 	status := w.Code
 	if status != http.StatusBadRequest {
 		t.Fatalf("Validate(w http.ResponseWriter, r *http.Request) status code = %d", status)

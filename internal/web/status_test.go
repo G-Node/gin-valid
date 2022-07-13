@@ -24,9 +24,8 @@ func TestStatusOK(t *testing.T) {
 
 	username := "valid-testing"
 	reponame := "Testing"
-
-	content := "wtf"
 	body := []byte("{}")
+
 	router := mux.NewRouter()
 	router.HandleFunc("/status/{validator}/{user}/{repo}", Status).Methods("GET")
 	r, _ := http.NewRequest("GET", filepath.Join("/status/bids", username, reponame), bytes.NewReader(body))
@@ -38,10 +37,20 @@ func TestStatusOK(t *testing.T) {
 	sig.Write(body)
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
 
-	os.MkdirAll(filepath.Join(resultfldr, "bids", username, reponame, srvcfg.Label.ResultsFolder), 0755)
-	f, _ := os.Create(filepath.Join(srvcfg.Dir.Result, "bids", username, reponame, srvcfg.Label.ResultsFolder, srvcfg.Label.ResultsBadge))
+	resdir := filepath.Join(resultfldr, "bids", username, reponame, srvcfg.Label.ResultsFolder)
+	err = os.MkdirAll(resdir, 0755)
+	if err != nil {
+		t.Fatalf("error creating results folder: %s", err.Error())
+	}
+	f, err := os.Create(filepath.Join(resdir, srvcfg.Label.ResultsBadge))
+	if err != nil {
+		t.Fatalf("error creating results file: %s", err.Error())
+	}
 	defer f.Close()
-	f.WriteString(content)
+	_, err = f.WriteString("wtf")
+	if err != nil {
+		t.Fatalf("error writing to results file: %s", err.Error())
+	}
 
 	router.ServeHTTP(w, r)
 	status := w.Code
