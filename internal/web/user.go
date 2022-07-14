@@ -74,17 +74,22 @@ func makeSessionKey(gcl *ginclient.Client, keyname string) error {
 		return err
 	}
 	keyfilepath := filepath.Join(configpath, fmt.Sprintf("%s.key", keyname))
-	ioutil.WriteFile(keyfilepath, []byte(keyPair.Private), 0600)
 
-	return nil
+	return ioutil.WriteFile(keyfilepath, []byte(keyPair.Private), 0600)
 }
 
 func deleteSessionKey(gcl *ginclient.Client, keyname string) {
 	description := fmt.Sprintf("GIN Valid: %s", keyname)
-	gcl.DeletePubKeyByTitle(description)
+	err := gcl.DeletePubKeyByTitle(description)
+	if err != nil {
+		log.ShowWrite("[Error] deleting key from server: %s", err.Error())
+	}
 	configpath, _ := gcfg.Path(false)
 	keyfilepath := filepath.Join(configpath, fmt.Sprintf("%s.key", keyname))
-	os.Remove(keyfilepath)
+	err = os.Remove(keyfilepath)
+	if err != nil {
+		log.ShowWrite("[Error] removing session key %q: %s", keyfilepath, err.Error())
+	}
 }
 
 // generateNewSessionID simply generates a secure random 64-byte string (b64 encoded)
@@ -191,13 +196,23 @@ func loginForm(w http.ResponseWriter, r *http.Request, errMsg string) {
 		errMsg,
 		loggedUsername,
 	}
-	tmpl.Execute(w, &data)
+	err = tmpl.Execute(w, &data)
+	if err != nil {
+		log.ShowWrite("[Error] failed to parse data to login form page: %s", err.Error())
+		fail(w, r, http.StatusInternalServerError, "something went wrong")
+	}
 }
 
 // LoginPost logs in the user to the GIN server, storing a session token.
 func LoginPost(w http.ResponseWriter, r *http.Request) {
-	log.Write("Doing login")
-	r.ParseForm()
+	log.ShowWrite("Handling user login")
+	err := r.ParseForm()
+	if err != nil {
+		log.ShowWrite("[Error] could not parse request form data: %s", err.Error())
+		loginForm(w, r, "Authentication failed")
+		return
+	}
+
 	username := r.FormValue("username")
 	password := r.FormValue("password")
 	if username == "" || password == "" {
@@ -291,7 +306,10 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.ShowWrite("[Error] ListRepos failed: %s", err.Error())
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte("not found"))
+		_, err = w.Write([]byte("not found"))
+		if err != nil {
+			log.ShowWrite("[Error] writing fallback message failed: %s", err.Error())
+		}
 		return
 	}
 
@@ -357,7 +375,11 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 		year,
 		loggedUsername,
 	}
-	tmpl.Execute(w, &allrepos)
+	err = tmpl.Execute(w, &allrepos)
+	if err != nil {
+		log.ShowWrite("[Error] failed to parse data to list repo template: %s", err.Error())
+		fail(w, r, http.StatusInternalServerError, "something went wrong")
+	}
 }
 
 // matchValidator receives a URL path from a GIN hook and returns the validator
@@ -478,7 +500,10 @@ func ShowRepo(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.ShowWrite("[Error] Repo info failed: %s", err.Error())
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte("not found"))
+		_, err = w.Write([]byte("not found"))
+		if err != nil {
+			log.ShowWrite("[Error] writing fallback message failed: %s", err.Error())
+		}
 		return
 	}
 
@@ -521,5 +546,9 @@ func ShowRepo(w http.ResponseWriter, r *http.Request) {
 		year,
 		loggedUsername,
 	}
-	tmpl.Execute(w, &repohi)
+	err = tmpl.Execute(w, &repohi)
+	if err != nil {
+		log.ShowWrite("[Error] failed to parse data to repo info template: %s", err.Error())
+		fail(w, r, http.StatusInternalServerError, "something went wrong")
+	}
 }
