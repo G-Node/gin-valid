@@ -407,7 +407,7 @@ func runValidatorBoth(validator, repopath, commit, commitname string, gcl *gincl
 			}
 			err = makeSessionKey(gcl, commit)
 			if err != nil {
-				log.ShowWrite("[error] failed to create session key: %s", err.Error())
+				log.ShowWrite("[Error] failed to create session key: %s", err.Error())
 				writeValFailure(resdir)
 				return
 			}
@@ -589,14 +589,14 @@ func PubValidatePost(w http.ResponseWriter, r *http.Request) {
 
 	err := r.ParseForm()
 	if err != nil {
-		log.ShowWrite("[error] could not parse request form data: %s", err.Error())
+		log.ShowWrite("[Error] could not parse request form data: %s", err.Error())
 		fail(w, r, http.StatusBadRequest, "Bad request")
 		return
 	}
 	repopath := r.Form["repopath"][0]
 	validators := r.Form["validator"]
 	if len(validators) < 1 {
-		log.ShowWrite("[error] no validator selected")
+		log.ShowWrite("[Error] no validator selected")
 		fail(w, r, http.StatusBadRequest, "No validator has been selected")
 		return
 	}
@@ -607,7 +607,7 @@ func PubValidatePost(w http.ResponseWriter, r *http.Request) {
 	gcl := ginclient.New(serveralias)
 	err = gcl.Login(ginuser, srvcfg.Settings.GINPassword, srvcfg.Settings.ClientID)
 	if err != nil {
-		log.ShowWrite("[error] failed to login as %s", ginuser)
+		log.ShowWrite("[Error] failed to login as %s", ginuser)
 		msg := fmt.Sprintf("failed to validate '%s': %s", repopath, err.Error())
 		fail(w, r, http.StatusUnauthorized, msg)
 		return
@@ -644,17 +644,17 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	var hookdata gogs.PushPayload
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.ShowWrite("[Error] failed to parse hook payload")
+		log.ShowWrite("[Error] failed to parse hook payload: %s", err.Error())
 		fail(w, r, http.StatusBadRequest, "bad request")
 		return
 	}
 	err = json.Unmarshal(b, &hookdata)
 	if err != nil {
-		log.ShowWrite("[Error] failed to parse hook payload")
+		log.ShowWrite("[Error] failed to parse hook payload: %s", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		_, err = w.Write([]byte("bad request"))
 		if err != nil {
-			log.ShowWrite("[Error] writing fallback bad request failed")
+			log.ShowWrite("[Error] writing fallback bad request failed: %s", err.Error())
 		}
 		return
 	}
@@ -718,6 +718,6 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write([]byte("OK"))
 	if err != nil {
-		log.ShowWrite("[Error] writing status OK failed")
+		log.ShowWrite("[Error] writing status OK failed: %s", err.Error())
 	}
 }
