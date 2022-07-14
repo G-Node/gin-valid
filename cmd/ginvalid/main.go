@@ -97,8 +97,12 @@ func commcheck(srvcfg config.ServerCfg) {
 	}
 	log.ShowWrite("[Warmup] Host key fingerprint for %q: %s", gitcfg.AddressStr(), fingerprint)
 	clicfg.Git.HostKey = hostkeystr
-	cliconfig.AddServerConf("gin", clicfg)
-	git.WriteKnownHosts()
+	err = cliconfig.AddServerConf("gin", clicfg)
+	if err != nil {
+		log.ShowWrite("[Error] Failed to write gin client config file: %s", err.Error())
+		os.Exit(-1)
+	}
+	err = git.WriteKnownHosts()
 	if err != nil {
 		log.ShowWrite("[Error] Failed to write known hosts file: %s", err.Error())
 		os.Exit(-1)
