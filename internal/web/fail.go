@@ -1,7 +1,6 @@
 package web
 
 import (
-	"fmt"
 	"html/template"
 	"net/http"
 	"time"
@@ -28,7 +27,7 @@ func fail(w http.ResponseWriter, r *http.Request, status int, message string) {
 		log.Write("[Error] failed to render fail page. Displaying plain error message.")
 		_, err = w.Write([]byte(message))
 		if err != nil {
-			log.Write(fmt.Sprintf("[Error] failed to write plain error message: %s", err.Error()))
+			log.Write("[Error] failed to write plain error message: %s", err.Error())
 		}
 		return
 	}
@@ -55,6 +54,6 @@ func fail(w http.ResponseWriter, r *http.Request, status int, message string) {
 	}
 	err = tmpl.Execute(w, &errinfo)
 	if err != nil {
-		log.Write(fmt.Sprintf("[Error] failed to parse error info to page: %s", err.Error()))
+		log.Write("[Error] failed to parse error info to page: %s", err.Error())
 	}
 }

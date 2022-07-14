@@ -3,7 +3,6 @@ package web
 import (
 	"encoding/base32"
 	"encoding/gob"
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -61,7 +60,7 @@ func linkToSession(username string, sessionid string) error {
 	// this will also fix outdated tokens. Log any error but try to continue.
 	err := os.Remove(sidfile)
 	if err != nil {
-		log.Write(fmt.Sprintf("[Error] removing session link: %s", err.Error()))
+		log.Write("[Error] removing session link: %s", err.Error())
 	}
 	return os.Symlink(utfile, sidfile)
 }
@@ -87,7 +86,7 @@ func linkToRepo(username string, repopath string) error {
 	// this will also fix outdated tokens Log any error but try to continue.
 	err := os.Remove(sidfile)
 	if err != nil {
-		log.Write(fmt.Sprintf("[Error] removing session link: %s", err.Error()))
+		log.Write("[Error] removing session link: %s", err.Error())
 	}
 	return os.Symlink(utfile, sidfile)
 }
