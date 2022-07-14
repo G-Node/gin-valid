@@ -28,8 +28,8 @@ func trim(file *os.File, filesize int) {
 	if err != nil {
 		return
 	}
-	file.Truncate(0)
-	file.Write(contents[nbytes-filesize : nbytes])
+	_ = file.Truncate(0)
+	_, _ = file.Write(contents[nbytes-filesize : nbytes])
 }
 
 // Init initialises log file and logger.
