@@ -102,7 +102,12 @@ func generateNewSessionID() (string, error) {
 
 func doLogin(username, password string) (string, error) {
 	gincl := ginclient.New(serveralias)
-	glog.Init()
+	err := glog.Init()
+	if err != nil {
+		// Weird to log after an error initializing the log file,
+		// but it should at least write to stdout.
+		log.ShowWrite("[Error] initializing log file: %s", err.Error())
+	}
 	cfg := config.Read()
 	clientID := cfg.Settings.ClientID
 

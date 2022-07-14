@@ -420,7 +420,12 @@ func runValidatorBoth(validator, repopath, commit, commitname string, gcl *gincl
 		// efficient by only downloading the content in the directories which are
 		// specified in the validator config (if it exists).
 
-		glog.Init()
+		err = glog.Init()
+		if err != nil {
+			// Weird to log after an error initializing the log file,
+			// but it should at least write to stdout.
+			log.ShowWrite("[Error] initializing log file: %s", err.Error())
+		}
 		clonechan := make(chan git.RepoFileStatus)
 		pth, _ := os.Getwd()
 		os.Chdir(tmpdir)
