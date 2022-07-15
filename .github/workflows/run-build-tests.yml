@@ -37,10 +37,10 @@ jobs:
           go get honnef.co/go/tools/cmd/staticcheck@latest
           staticcheck ./...
       - name: Run errcheck
-        # deliberately ignore errors on defer statements for now
         run: |
           go get github.com/kisielk/errcheck
-          errcheck ./... | grep -v defer
+          errcheck ./...
+        continue-on-error: true
 
   build:
     name: build
