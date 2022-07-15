@@ -32,17 +32,14 @@ jobs:
         run: |
           go get golang.org/x/lint/golint
           golint ./...
-        continue-on-error: true
       - name: Run staticcheck
         run: |
           go get honnef.co/go/tools/cmd/staticcheck
           staticcheck ./...
-        continue-on-error: true
       - name: Run errcheck
         run: |
           go get github.com/kisielk/errcheck
           errcheck ./...
-        continue-on-error: true
 
   build:
     name: build
