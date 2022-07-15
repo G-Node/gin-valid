@@ -396,15 +396,18 @@ func runValidatorBoth(validator, repopath, commit, commitname string, gcl *gincl
 		if automatic { //TODO should be automatic or not?
 			// Link 'latest' to new res dir to show processing
 			latestdir := filepath.Join(filepath.Dir(resdir), "latest")
-			os.Remove(latestdir) // ignore error
+			err = os.Remove(latestdir)
+			if err != nil {
+				log.ShowWrite("[Error] removing dir %q: %s", latestdir, err.Error())
+			}
 			err = os.Symlink(resdir, latestdir)
 			if err != nil {
+				// Don't return if processing badge write fails but log the issue
 				log.ShowWrite("[Error] failed to link %q to %q: %s", resdir, latestdir, err.Error())
-				// Don't return if processing badge write fails
 			}
 			err = makeSessionKey(gcl, commit)
 			if err != nil {
-				log.ShowWrite("[error] failed to create session key: %s", err.Error())
+				log.ShowWrite("[Error] failed to create session key: %s", err.Error())
 				writeValFailure(resdir)
 				return
 			}
@@ -420,10 +423,26 @@ func runValidatorBoth(validator, repopath, commit, commitname string, gcl *gincl
 		// efficient by only downloading the content in the directories which are
 		// specified in the validator config (if it exists).
 
-		glog.Init()
+		err = glog.Init()
+		if err != nil {
+			// Weird to log after an error initializing the log file,
+			// but it should at least write to stdout.
+			log.ShowWrite("[Error] initializing log file: %s", err.Error())
+		}
 		clonechan := make(chan git.RepoFileStatus)
-		pth, _ := os.Getwd()
-		os.Chdir(tmpdir)
+		pth, err := os.Getwd()
+		if err != nil {
+			log.ShowWrite("[Error] ascertaining working dir; %s", err.Error())
+			writeValFailure(resdir)
+			return
+		}
+		err = os.Chdir(tmpdir)
+		if err != nil {
+			log.ShowWrite("[Error] ascertaining working dir; %s", err.Error())
+			writeValFailure(resdir)
+			return
+		}
+
 		go gcl.CloneRepo(repopath, clonechan)
 		for stat := range clonechan {
 			if stat.Err != nil && stat.Err.Error() != "Error initialising local directory" {
@@ -458,7 +477,10 @@ func runValidatorBoth(validator, repopath, commit, commitname string, gcl *gincl
 			log.ShowWrite("[Info] %s %s %s", stat.State, stat.FileName, stat.Progress)
 		}
 		log.ShowWrite("[Info] get-content complete")
-		os.Chdir(pth)
+		err = os.Chdir(pth)
+		if err != nil {
+			log.ShowWrite("[Error] changing back to original dir %q: %s", pth, err.Error())
+		}
 
 		switch validator {
 		case "bids":
@@ -534,7 +556,7 @@ func renderValidationForm(w http.ResponseWriter, r *http.Request, errMsg string)
 	}
 	tmpl, err = tmpl.Parse(templates.PubValidate)
 	if err != nil {
-		log.ShowWrite("[Error] failed to render root page")
+		log.ShowWrite("[Error] failed to render public validation page: %s", err.Error())
 		fail(w, r, http.StatusInternalServerError, "something went wrong")
 		return
 	}
@@ -552,7 +574,11 @@ func renderValidationForm(w http.ResponseWriter, r *http.Request, errMsg string)
 		errMsg,
 		loggedUsername,
 	}
-	tmpl.Execute(w, &data)
+	err = tmpl.Execute(w, &data)
+	if err != nil {
+		log.ShowWrite("[Error] failed to parse data to public validation page: %s", err.Error())
+		fail(w, r, http.StatusInternalServerError, "something went wrong")
+	}
 }
 
 // PubValidatePost parses the POST data from the root form and calls the
@@ -561,11 +587,16 @@ func PubValidatePost(w http.ResponseWriter, r *http.Request) {
 	srvcfg := config.Read()
 	ginuser := srvcfg.Settings.GINUser
 
-	r.ParseForm()
+	err := r.ParseForm()
+	if err != nil {
+		log.ShowWrite("[Error] could not parse request form data: %s", err.Error())
+		fail(w, r, http.StatusBadRequest, "Bad request")
+		return
+	}
 	repopath := r.Form["repopath"][0]
 	validators := r.Form["validator"]
 	if len(validators) < 1 {
-		log.ShowWrite("[error] no validator selected")
+		log.ShowWrite("[Error] no validator selected")
 		fail(w, r, http.StatusBadRequest, "No validator has been selected")
 		return
 	}
@@ -574,9 +605,9 @@ func PubValidatePost(w http.ResponseWriter, r *http.Request) {
 	log.ShowWrite("[Info] About to validate repository '%s' with %s", repopath, ginuser)
 	log.ShowWrite("[Info] Logging in to GIN server")
 	gcl := ginclient.New(serveralias)
-	err := gcl.Login(ginuser, srvcfg.Settings.GINPassword, srvcfg.Settings.ClientID)
+	err = gcl.Login(ginuser, srvcfg.Settings.GINPassword, srvcfg.Settings.ClientID)
 	if err != nil {
-		log.ShowWrite("[error] failed to login as %s", ginuser)
+		log.ShowWrite("[Error] failed to login as %s", ginuser)
 		msg := fmt.Sprintf("failed to validate '%s': %s", repopath, err.Error())
 		fail(w, r, http.StatusUnauthorized, msg)
 		return
@@ -613,15 +644,18 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	var hookdata gogs.PushPayload
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.ShowWrite("[Error] failed to parse hook payload")
+		log.ShowWrite("[Error] failed to parse hook payload: %s", err.Error())
 		fail(w, r, http.StatusBadRequest, "bad request")
 		return
 	}
 	err = json.Unmarshal(b, &hookdata)
 	if err != nil {
-		log.ShowWrite("[Error] failed to parse hook payload")
+		log.ShowWrite("[Error] failed to parse hook payload: %s", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("bad request"))
+		_, err = w.Write([]byte("bad request"))
+		if err != nil {
+			log.ShowWrite("[Error] writing fallback bad request failed: %s", err.Error())
+		}
 		return
 	}
 	if !checkHookSecret(b, secret) {
@@ -682,5 +716,8 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	runValidator(validator, repopath, commithash, gcl)
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
+	_, err = w.Write([]byte("OK"))
+	if err != nil {
+		log.ShowWrite("[Error] writing status OK failed: %s", err.Error())
+	}
 }
