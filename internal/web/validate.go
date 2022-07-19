@@ -436,9 +436,10 @@ func runValidatorBoth(validator, repopath, commit, commitname string, gcl *gincl
 			writeValFailure(resdir)
 			return
 		}
+		log.ShowWrite("[Info] currently in dir %q; chaning to %q", pth, tmpdir)
 		err = os.Chdir(tmpdir)
 		if err != nil {
-			log.ShowWrite("[Error] ascertaining working dir; %s", err.Error())
+			log.ShowWrite("[Error] changing working dir; %s", err.Error())
 			writeValFailure(resdir)
 			return
 		}
