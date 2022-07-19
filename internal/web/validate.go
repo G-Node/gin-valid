@@ -443,6 +443,8 @@ func runValidatorBoth(validator, repopath, commit, commitname string, gcl *gincl
 			return
 		}
 
+		// make sure the push event had time to process on gin web before cloning
+		time.Sleep(5 * time.Second)
 		go gcl.CloneRepo(repopath, clonechan)
 		for stat := range clonechan {
 			if stat.Err != nil && stat.Err.Error() != "Error initialising local directory" {
