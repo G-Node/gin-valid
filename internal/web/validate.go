@@ -429,60 +429,12 @@ func runValidatorBoth(validator, repopath, commit, commitname string, gcl *gincl
 			// but it should at least write to stdout.
 			log.ShowWrite("[Error] initializing log file: %s", err.Error())
 		}
-		clonechan := make(chan git.RepoFileStatus)
-		pth, err := os.Getwd()
+
+		err = ginClientCloneAndGet(gcl, tmpdir, commit, repopath, automatic)
 		if err != nil {
-			log.ShowWrite("[Error] ascertaining working dir; %s", err.Error())
+			log.ShowWrite(err.Error())
 			writeValFailure(resdir)
 			return
-		}
-		log.ShowWrite("[Info] currently in dir %q; chaning to %q", pth, tmpdir)
-		err = os.Chdir(tmpdir)
-		if err != nil {
-			log.ShowWrite("[Error] changing working dir; %s", err.Error())
-			writeValFailure(resdir)
-			return
-		}
-
-		// make sure the push event had time to process on gin web before cloning
-		time.Sleep(5 * time.Second)
-		go gcl.CloneRepo(repopath, clonechan)
-		for stat := range clonechan {
-			if stat.Err != nil && stat.Err.Error() != "Error initialising local directory" {
-				log.ShowWrite("[Error] Failed to fetch repository data for %q: %s", repopath, stat.Err.Error())
-				writeValFailure(resdir)
-				return
-			}
-			log.ShowWrite("[Info] %s %s", stat.State, stat.Progress)
-		}
-		log.ShowWrite("[Info] clone complete for '%s'", repopath)
-
-		if automatic {
-			// checkout specific commit then download all content
-			log.ShowWrite("[Info] git checkout %s", commit)
-			err = git.Checkout(commit, nil)
-			if err != nil {
-				log.ShowWrite("[Error] failed to checkout commit %q: %s", commit, err.Error())
-				writeValFailure(resdir)
-				return
-			}
-		}
-		log.ShowWrite("[Info] Downloading content")
-		getcontentchan := make(chan git.RepoFileStatus)
-		// TODO: Get only the content for the files that will be validated
-		go gcl.GetContent([]string{"."}, getcontentchan)
-		for stat := range getcontentchan {
-			if stat.Err != nil {
-				log.ShowWrite("[Error] failed to get content for %q: %s", repopath, stat.Err.Error())
-				writeValFailure(resdir)
-				return
-			}
-			log.ShowWrite("[Info] %s %s %s", stat.State, stat.FileName, stat.Progress)
-		}
-		log.ShowWrite("[Info] get-content complete")
-		err = os.Chdir(pth)
-		if err != nil {
-			log.ShowWrite("[Error] changing back to original dir %q: %s", pth, err.Error())
 		}
 
 		switch validator {
@@ -497,11 +449,63 @@ func runValidatorBoth(validator, repopath, commit, commitname string, gcl *gincl
 		}
 
 		if err != nil {
+			// this does not properly log the occurred error; do this here
+			// and refactor the function to include the type of validation that failed
 			writeValFailure(resdir)
 		}
 	}()
 	return respath
 }
+
+func ginClientCloneAndGet(gcl *ginclient.Client, tmpdir, commit, repopath string, automatic bool) error {
+	clonechan := make(chan git.RepoFileStatus)
+	pth, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("[Error] ascertaining working dir; %s", err.Error())
+	}
+	log.ShowWrite("[Info] currently in dir %q; changing to %q", pth, tmpdir)
+	err = os.Chdir(tmpdir)
+	if err != nil {
+		return fmt.Errorf("[Error] changing working dir; %s", err.Error())
+	}
+
+	// make sure the push event had time to process on gin web before cloning
+	time.Sleep(5 * time.Second)
+	go gcl.CloneRepo(repopath, clonechan)
+	for stat := range clonechan {
+		if stat.Err != nil && stat.Err.Error() != "Error initialising local directory" {
+			return fmt.Errorf("[Error] Failed to fetch repository data for %q: %s", repopath, stat.Err.Error())
+		}
+		log.ShowWrite("[Info] %s %s", stat.State, stat.Progress)
+	}
+	log.ShowWrite("[Info] clone complete for '%s'", repopath)
+
+	if automatic {
+		// checkout specific commit then download all content
+		log.ShowWrite("[Info] git checkout %s", commit)
+		err = git.Checkout(commit, nil)
+		if err != nil {
+			return fmt.Errorf("[Error] failed to checkout commit %q: %s", commit, err.Error())
+		}
+	}
+	log.ShowWrite("[Info] Downloading content")
+	getcontentchan := make(chan git.RepoFileStatus)
+	// TODO: Get only the content for the files that will be validated
+	go gcl.GetContent([]string{"."}, getcontentchan)
+	for stat := range getcontentchan {
+		if stat.Err != nil {
+			return fmt.Errorf("[Error] failed to get content for %q: %s", repopath, stat.Err.Error())
+		}
+		log.ShowWrite("[Info] %s %s %s", stat.State, stat.FileName, stat.Progress)
+	}
+	log.ShowWrite("[Info] get-content complete")
+	err = os.Chdir(pth)
+	if err != nil {
+		log.ShowWrite("[Error] changing back to original dir %q: %s", pth, err.Error())
+	}
+	return nil
+}
+
 func runValidator(validator, repopath, commit string, gcl *ginclient.Client) {
 	automatic := true
 	runValidatorBoth(validator, repopath, commit, commit, gcl, automatic)
