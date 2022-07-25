@@ -405,13 +405,17 @@ func runValidatorBoth(validator, repopath, commit, commitname string, gcl *gincl
 				// Don't return if processing badge write fails but log the issue
 				log.ShowWrite("[Error] failed to link %q to %q: %s", resdir, latestdir, err.Error())
 			}
-			err = makeSessionKey(gcl, commit)
+			// create a session for the commit and the current validator;
+			// can lead to unpleasantness when multiple hooks trigger other wise
+			keyname := fmt.Sprintf("%s-%s", commit, validator)
+			log.ShowWrite("[Info] creating session key %q", keyname)
+			err = makeSessionKey(gcl, keyname)
 			if err != nil {
 				log.ShowWrite("[Error] failed to create session key: %s", err.Error())
 				writeValFailure(resdir)
 				return
 			}
-			defer deleteSessionKey(gcl, commit)
+			defer deleteSessionKey(gcl, keyname)
 		}
 		// TODO: if (annexed) content is not available yet, wait and retry.  We
 		// would have to set a max timeout for this.  The issue is that when a user
