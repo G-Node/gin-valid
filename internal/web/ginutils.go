@@ -90,6 +90,30 @@ func isGitRepo(path string) bool {
 	return true
 }
 
+// formatCloneErr handles clone error messages and returns
+// an appropriately formatted shell.Error.
+func formatCloneErr(errstring, repopath, fn string) shell.Error {
+	repoPathParts := strings.SplitN(repopath, "/", 2)
+	repoOwner := repoPathParts[0]
+	repoName := repoPathParts[1]
+
+	gerr := localginerror{UError: errstring, Origin: fn}
+	if strings.Contains(errstring, "does not exist") {
+		gerr.Description = fmt.Sprintf("Repository download failed\n"+
+			"Make sure you typed the repository path correctly\n"+
+			"Type 'gin repos %s' to see if the repository exists and if you have access to it",
+			repoOwner)
+	} else if strings.Contains(errstring, "already exists and is not an empty directory") {
+		gerr.Description = fmt.Sprintf("Repository download failed.\n"+
+			"%q already exists in the current directory and is not empty.", repoName)
+	} else if strings.Contains(errstring, "Host key verification failed") {
+		gerr.Description = "Server key does not match known/configured host key."
+	} else {
+		gerr.Description = fmt.Sprintf("Repository download failed. Internal git command returned: %s", errstring)
+	}
+	return gerr
+}
+
 // remoteInitDir initialises a git repository at a provided path
 // with the default remote and git (and annex) configuration options.
 // It will further checkout the "master" branch for the provided
