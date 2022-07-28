@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/user"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -106,6 +107,39 @@ func isGitRepo(path string) bool {
 		return false
 	}
 	return true
+}
+
+// remoteCloneRepo clones a provided repository at a provided path and initialises annex.
+// The status channel 'clonechan' is closed when this function returns.
+// This function is a modified version of the gin-client CloneRepo method.
+func remoteCloneRepo(gincl *ginclient.Client, repopath, clonedir string, clonechan chan<- gingit.RepoFileStatus) {
+	defer close(clonechan)
+	log.ShowWrite("[Info] Starting remoteCloneRepo")
+	clonestatus := make(chan gingit.RepoFileStatus)
+	remotepath := fmt.Sprintf("%s/%s", gincl.GitAddress(), repopath)
+
+	go remoteClone(remotepath, repopath, clonedir, clonestatus)
+	for stat := range clonestatus {
+		clonechan <- stat
+		if stat.Err != nil {
+			return
+		}
+	}
+
+	repoPathParts := strings.SplitN(repopath, "/", 2)
+	repoName := repoPathParts[1]
+	gitdir := filepath.Join(clonedir, repoName)
+
+	status := gingit.RepoFileStatus{State: "Initialising local storage"}
+	clonechan <- status
+	err := remoteInitDir(gincl, gitdir)
+	if err != nil {
+		status.Err = err
+		clonechan <- status
+		return
+	}
+	status.Progress = "100%"
+	clonechan <- status
 }
 
 // remoteClone clones a specified git repository to a specified local directory.
