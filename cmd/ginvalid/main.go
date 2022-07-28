@@ -62,13 +62,13 @@ func startupCheck(srvcfg config.ServerCfg) {
 		os.Exit(-1)
 	}
 
-	log.ShowWrite("[Warmup] using temp directory: '%s'", srvcfg.Dir.Temp)
-	log.ShowWrite("[Warmup] using results directory '%s'", srvcfg.Dir.Result)
+	log.ShowWrite("[Warmup] using temp directory: %q", srvcfg.Dir.Temp)
+	log.ShowWrite("[Warmup] using results directory %q", srvcfg.Dir.Result)
 
 	// Check bids-validator is installed
 	outstr, err := helpers.AppVersionCheck(srvcfg.Exec.BIDS)
 	if err != nil {
-		log.ShowWrite("[Error] checking bids-validator '%s'", err.Error())
+		log.ShowWrite("[Error] checking bids-validator %q", err.Error())
 		os.Exit(-1)
 	}
 	log.ShowWrite("[Warmup] using bids-validator v%s", strings.TrimSpace(outstr))
@@ -110,7 +110,7 @@ func commcheck(srvcfg config.ServerCfg) {
 	cli := ginclient.New("gin")
 	err = cli.Login(srvcfg.Settings.GINUser, srvcfg.Settings.GINPassword, srvcfg.Settings.ClientID)
 	if err != nil {
-		log.ShowWrite("Failed to login to GIN server: %s", err.Error())
+		log.ShowWrite("[Error] Failed to login to GIN server: %s", err.Error())
 		os.Exit(-1)
 	}
 	log.ShowWrite("[Warmup] GIN server configuration OK")
@@ -171,7 +171,7 @@ func main() {
 		port = srvcfg.Settings.Port
 	}
 	port = fmt.Sprintf(":%s", port)
-	log.ShowWrite("[Warmup] using port: '%s'", port)
+	log.ShowWrite("[Warmup] using port: %q", port)
 
 	log.ShowWrite("[Warmup] registering routes")
 	router := mux.NewRouter()

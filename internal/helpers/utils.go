@@ -12,10 +12,10 @@ func ValidDirectory(path string) bool {
 	var fi os.FileInfo
 	var err error
 	if fi, err = os.Stat(path); err != nil {
-		log.ShowWrite("[Error] checking directory '%s': '%s'\n", path, err.Error())
+		log.ShowWrite("[Error] checking directory %q: %q", path, err.Error())
 		return false
 	} else if !fi.IsDir() {
-		log.ShowWrite("[Error] invalid directory '%s'\n", fi.Name())
+		log.ShowWrite("[Error] invalid directory %q", fi.Name())
 		return false
 	}
 	return true

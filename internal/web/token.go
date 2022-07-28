@@ -40,7 +40,7 @@ func loadToken(path string) (gweb.UserToken, error) {
 	ut := gweb.UserToken{}
 	tokenfile, err := os.Open(path)
 	if err != nil {
-		log.Write("[Error] Failed to load token from %s", path)
+		log.ShowWrite("[Error] failed to load token from %s: %s", path, err.Error())
 		return ut, err
 	}
 	defer tokenfile.Close()
@@ -60,7 +60,7 @@ func linkToSession(username string, sessionid string) error {
 	// this will also fix outdated tokens. Log any error but try to continue.
 	err := os.Remove(sidfile)
 	if err != nil {
-		log.Write("[Error] removing session link: %s", err.Error())
+		log.ShowWrite("[Error] removing session link: %s", err.Error())
 	}
 	return os.Symlink(utfile, sidfile)
 }
@@ -86,7 +86,7 @@ func linkToRepo(username string, repopath string) error {
 	// this will also fix outdated tokens Log any error but try to continue.
 	err := os.Remove(sidfile)
 	if err != nil {
-		log.Write("[Error] removing session link: %s", err.Error())
+		log.ShowWrite("[Error] removing session link: %s", err.Error())
 	}
 	return os.Symlink(utfile, sidfile)
 }

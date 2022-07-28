@@ -28,7 +28,7 @@ func EnableHook(w http.ResponseWriter, r *http.Request) {
 	validator := strings.ToLower(vars["validator"])
 	ut, err := getSessionOrRedirect(w, r)
 	if err != nil {
-		log.Write("[Info] %s: Redirecting to login", err.Error())
+		log.ShowWrite("[Info] %s: redirecting to login", err.Error())
 		return
 	}
 	if !helpers.SupportedValidator(validator) {
@@ -61,7 +61,7 @@ func DisableHook(w http.ResponseWriter, r *http.Request) {
 
 	ut, err := getSessionOrRedirect(w, r)
 	if err != nil {
-		log.Write("[Info] %s: Redirecting to login", err.Error())
+		log.ShowWrite("[Info] %s: redirecting to login", err.Error())
 		return
 	}
 
@@ -88,7 +88,7 @@ func createValidHook(repopath string, validator string, usertoken gweb.UserToken
 	// TODO: AVOID DUPLICATES:
 	//   - If it's already hooked and we have it on record, do nothing
 	//   - If it's already hooked, but we don't know about it, check if it's valid and don't recreate
-	log.Write("Adding %s hook to %s\n", validator, repopath)
+	log.ShowWrite("[Info] adding %q hook to %q", validator, repopath)
 
 	cfg := config.Read()
 	client := ginclient.New(serveralias)
@@ -98,7 +98,7 @@ func createValidHook(repopath string, validator string, usertoken gweb.UserToken
 
 	u, err := url.Parse(cfg.Settings.RootURL)
 	if err != nil {
-		log.Write("[error] failed to parse url: %s", err.Error())
+		log.ShowWrite("[Error] failed to parse url: %s", err.Error())
 		return fmt.Errorf("hook creation failed: %s", err.Error())
 	}
 	u.Path = path.Join(u.Path, "validate", validator, repopath)
@@ -113,13 +113,13 @@ func createValidHook(repopath string, validator string, usertoken gweb.UserToken
 	}
 	res, err := client.Post(fmt.Sprintf("/api/v1/repos/%s/hooks", repopath), data)
 	if err != nil {
-		log.Write("[error] failed to post: %s", err.Error())
+		log.ShowWrite("[Error] failed to post: %s", err.Error())
 		return fmt.Errorf("hook creation failed: %s", err.Error())
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusCreated {
-		log.Write("[error] non-OK response: %s", res.Status)
+		log.ShowWrite("[Error] non-OK response: %s", res.Status)
 		return fmt.Errorf("hook creation failed: %s", res.Status)
 	}
 
@@ -128,23 +128,24 @@ func createValidHook(repopath string, validator string, usertoken gweb.UserToken
 }
 
 func deleteValidHook(repopath string, id int, usertoken gweb.UserToken) error {
-	log.Write("Deleting %d from %s\n", id, repopath)
+	log.ShowWrite("[Info] deleting hook %d from %q", id, repopath)
 
 	client := ginclient.New(serveralias)
 	client.UserToken = usertoken
 
 	res, err := client.Delete(fmt.Sprintf("/api/v1/repos/%s/hooks/%d", repopath, id))
 	if err != nil {
-		log.Write("[error] bad response from server %s", err.Error())
+		log.ShowWrite("[Error] bad response from server %s", err.Error())
 		return err
 	}
 	defer res.Body.Close()
-	log.Write("[info] removed hook for %s", repopath)
+	log.ShowWrite("[Info] removed hook for %s", repopath)
 
-	log.Write("[info] removing repository -> token link")
+	// TODO remove token link only if there are no other validator hooks for this repository left
+	log.ShowWrite("[Info] removing repository -> token link")
 	err = rmTokenRepoLink(repopath)
 	if err != nil {
-		log.Write("[error] failed to delete token link: %s", err.Error())
+		log.ShowWrite("[Error] failed to delete token link: %s", err.Error())
 		// don't fail
 	}
 

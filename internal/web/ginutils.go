@@ -114,7 +114,7 @@ func isGitRepo(path string) bool {
 // This function is a modified version of the gin-client CloneRepo method.
 func remoteCloneRepo(gincl *ginclient.Client, repopath, clonedir string, clonechan chan<- gingit.RepoFileStatus) {
 	defer close(clonechan)
-	log.ShowWrite("[Info] Starting remoteCloneRepo")
+	log.ShowWrite("[Info] starting remoteCloneRepo")
 	clonestatus := make(chan gingit.RepoFileStatus)
 	remotepath := fmt.Sprintf("%s/%s", gincl.GitAddress(), repopath)
 
@@ -438,8 +438,7 @@ func remoteAnnexGet(gitdir string, getchan chan<- gingit.RepoFileStatus, rawMode
 			err = json.Unmarshal(outline, &getresult)
 			if err != nil || getresult.Command == "" {
 				// Couldn't parse output
-				log.ShowWrite("[Warning] Could not parse 'git annex get' output")
-				log.ShowWrite(string(outline))
+				log.ShowWrite("[Warning] Could not parse 'git annex get' output: %s", string(outline))
 				// TODO: Print error at the end: Command succeeded but there was an error understanding the output
 				continue
 			}
@@ -490,7 +489,7 @@ func remoteCommitCheckout(gitdir, hash string) error {
 	cmd.Args = cmdargs
 	_, stderr, err := cmd.OutputError()
 	if err != nil {
-		log.ShowWrite("[Error] %s; %s", err.Error(), string(stderr))
+		log.ShowWrite("[Error] err: %s; stderr: %s", err.Error(), string(stderr))
 		return fmt.Errorf(string(stderr))
 	}
 	return nil

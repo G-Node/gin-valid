@@ -82,14 +82,14 @@ func validateBIDS(valroot, resdir string) error {
 	var validateNifti bool
 
 	cfgpath := filepath.Join(valroot, srvcfg.Label.ValidationConfigFile)
-	log.ShowWrite("[Info] looking for config file at '%s'", cfgpath)
+	log.ShowWrite("[Info] looking for config file at %q", cfgpath)
 	if fi, err := os.Stat(cfgpath); err == nil && !fi.IsDir() {
 		valcfg, err := handleValidationConfig(cfgpath)
 		if err == nil {
 			checkdir := filepath.Join(valroot, valcfg.Bidscfg.BidsRoot)
 			if fi, err = os.Stat(checkdir); err == nil && fi.IsDir() {
 				valroot = checkdir
-				log.ShowWrite("[Info] using validation root directory: %s\n%s", valroot, checkdir)
+				log.ShowWrite("[Info] using validation root directory: %s; %s", valroot, checkdir)
 			} else {
 				log.ShowWrite("[Error] reading validation root directory: %s", err.Error())
 			}
@@ -98,12 +98,12 @@ func validateBIDS(valroot, resdir string) error {
 			log.ShowWrite("[Error] unmarshalling validation config file: %s", err.Error())
 		}
 	} else {
-		log.ShowWrite("[Info] no validation config file found or processed, running from repo root (%s)", err.Error())
+		log.ShowWrite("[Info] no validation config file found or processed, running from repo root: %s", err.Error())
 	}
 
 	// Ignoring NiftiHeaders for now, since it seems to be a common error
 	outBadge := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
-	log.ShowWrite("[Info] Running bids validation: '%s %t --json %s'", srvcfg.Exec.BIDS, validateNifti, valroot)
+	log.ShowWrite("[Info] running bids validation: '%s %t --json %s'", srvcfg.Exec.BIDS, validateNifti, valroot)
 
 	// Make sure the validator arguments are in the right order
 	var args []string
@@ -122,7 +122,7 @@ func validateBIDS(valroot, resdir string) error {
 	cmd.Stderr = &serr
 	// cmd.Dir = tmpdir
 	if err := cmd.Run(); err != nil {
-		err = fmt.Errorf("[Error] running bids validation (%s): '%s', '%s'", valroot, err.Error(), serr.String())
+		err = fmt.Errorf("[Error] running bids validation (%s): %q, %q", valroot, err.Error(), serr.String())
 		log.ShowWrite(err.Error())
 		return err
 	}
@@ -217,7 +217,7 @@ func validateNIX(valroot, resdir string) error {
 	cmd.Stderr = &serr
 	// cmd.Dir = tmpdir
 	if err = cmd.Run(); err != nil {
-		err = fmt.Errorf("[Error] running NIX validation (%s): '%s', '%s'", valroot, err.Error(), serr.String())
+		err = fmt.Errorf("[Error] running NIX validation (%s): %q, %q", valroot, err.Error(), serr.String())
 		log.ShowWrite(err.Error())
 		return err
 	}
@@ -345,7 +345,7 @@ func validateODML(valroot, resdir string) error {
 func runValidatorBoth(validator, repopath, commit, commitname string, gcl *ginclient.Client, automatic bool) string {
 	respath := filepath.Join(validator, repopath, commit)
 	go func() {
-		log.ShowWrite("[Info] Running %s validation on repository %q (%s)", validator, repopath, commitname)
+		log.ShowWrite("[Info] running %s validation on repository %q (%s)", validator, repopath, commitname)
 
 		// TODO add check if a repo is currently being validated. Since the cloning
 		// can potentially take quite some time prohibit running the same
@@ -369,7 +369,7 @@ func runValidatorBoth(validator, repopath, commit, commitname string, gcl *gincl
 
 		tmpdir, err := ioutil.TempDir(srvcfg.Dir.Temp, validator)
 		if err != nil {
-			log.ShowWrite("[Error] Internal error: Couldn't create temporary gin directory: %s", err.Error())
+			log.ShowWrite("[Error] could not create temporary gin directory: %s", err.Error())
 			writeValFailure(resdir)
 			return
 		}
@@ -487,7 +487,7 @@ func cloneAndGet(gcl *ginclient.Client, tmpdir, commit, repopath string, checkou
 	repoDir := filepath.Join(tmpdir, repoName)
 	remoteGitDir, err := filepath.Abs(repoDir)
 	if err != nil {
-		return fmt.Errorf("[Error] getting absolute path for %q", repoDir)
+		return fmt.Errorf("[Error] getting absolute path for %q: %s", repoDir, err.Error())
 	}
 
 	if checkoutCommit {
@@ -497,7 +497,7 @@ func cloneAndGet(gcl *ginclient.Client, tmpdir, commit, repopath string, checkou
 			return fmt.Errorf("[Error] failed to checkout commit %q: %s", commit, err.Error())
 		}
 	}
-	log.ShowWrite("[Info] Downloading content")
+	log.ShowWrite("[Info] downloading content")
 	getcontentchan := make(chan git.RepoFileStatus)
 	// TODO: Get only the content for the files that will be validated
 	// do not format annex output as json
@@ -565,7 +565,7 @@ func renderValidationForm(w http.ResponseWriter, r *http.Request, errMsg string)
 	tmpl := template.New("layout")
 	tmpl, err := tmpl.Parse(templates.Layout)
 	if err != nil {
-		log.ShowWrite("[Error] failed to parse html layout page")
+		log.ShowWrite("[Error] failed to parse html layout page: %s", err.Error())
 		fail(w, r, http.StatusInternalServerError, "something went wrong")
 		return
 	}
@@ -617,12 +617,12 @@ func PubValidatePost(w http.ResponseWriter, r *http.Request) {
 	}
 	validator := r.Form["validator"][0]
 
-	log.ShowWrite("[Info] About to validate repository '%s' with %s", repopath, ginuser)
-	log.ShowWrite("[Info] Logging in to GIN server")
+	log.ShowWrite("[Info] validating repository %q with user %s", repopath, ginuser)
+	log.ShowWrite("[Info] logging into GIN server")
 	gcl := ginclient.New(serveralias)
 	err = gcl.Login(ginuser, srvcfg.Settings.GINPassword, srvcfg.Settings.ClientID)
 	if err != nil {
-		log.ShowWrite("[Error] failed to login as %s", ginuser)
+		log.ShowWrite("[Error] failed to login as %s: %s", ginuser, err.Error())
 		msg := fmt.Sprintf("failed to validate '%s': %s", repopath, err.Error())
 		fail(w, r, http.StatusUnauthorized, msg)
 		return
@@ -652,7 +652,7 @@ func PubValidatePost(w http.ResponseWriter, r *http.Request) {
 // repository is a valid BIDS dataset.
 // Any cloned files are cleaned up after the check is done.
 func Validate(w http.ResponseWriter, r *http.Request) {
-	log.ShowWrite("[Info] Entering validation")
+	log.ShowWrite("[Info] starting validation")
 	// TODO: Simplify/split this function
 	secret := r.Header.Get("X-Gogs-Signature")
 
@@ -687,14 +687,14 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	validator := vars["validator"]
 	if !helpers.SupportedValidator(validator) {
-		log.ShowWrite("[Error] unsupported validator (%v)", validator)
+		log.ShowWrite("[Error] unsupported validator %q", validator)
 		fail(w, r, http.StatusNotFound, "unsupported validator")
 		return
 	}
 	user := vars["user"]
 	repo := vars["repo"]
 	repopath := fmt.Sprintf("%s/%s", user, repo)
-	log.ShowWrite("[Info] '%s' validation for repo '%s'", validator, repopath)
+	log.ShowWrite("[Info] %q validation for repo %q", validator, repopath)
 
 	// TODO add check if a repo is currently being validated. Since the cloning
 	// can potentially take quite some time prohibit running the same
@@ -710,12 +710,12 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	ut, err := getTokenByRepo(repopath)
 	if err != nil {
 		// We don't have a valid token for this repository: can't clone
-		log.ShowWrite("[Error] Bad Token: %v", err)
+		log.ShowWrite("[Error] bad token: %s", err.Error())
 		msg := fmt.Sprintf("accessing '%s': no access token found", repopath)
 		fail(w, r, http.StatusUnauthorized, msg)
 		return
 	}
-	log.ShowWrite("[Info] Using user %s", ut.Username)
+	log.ShowWrite("[Info] using user %s", ut.Username)
 	gcl := ginclient.New(serveralias)
 	gcl.UserToken = ut
 
@@ -726,7 +726,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.ShowWrite("[Info] Got user %s. Checking repo", gcl.Username)
+	log.ShowWrite("[Info] got user %s; checking repo", gcl.Username)
 	// Payload is good. Run validator asynchronously and return OK header
 	runValidator(validator, repopath, commithash, gcl)
 

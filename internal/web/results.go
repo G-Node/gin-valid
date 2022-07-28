@@ -120,11 +120,11 @@ func Results(w http.ResponseWriter, r *http.Request) {
 	repo := vars["repo"]
 	validator := strings.ToLower(vars["validator"])
 	if !helpers.SupportedValidator(validator) {
-		log.ShowWrite("[Error] unsupported validator '%s'\n", validator)
+		log.ShowWrite("[Error] unsupported validator '%s'", validator)
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("404 Nothing to see here...")))
 		return
 	}
-	log.ShowWrite("[Info] '%s' results for repo '%s/%s'\n", validator, user, repo)
+	log.ShowWrite("[Info] %q results for repo '%s/%s'", validator, user, repo)
 
 	srvcfg := config.Read()
 	resID, ok := vars["id"]
@@ -143,7 +143,7 @@ func Results(w http.ResponseWriter, r *http.Request) {
 	fp := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
 	badge, err := ioutil.ReadFile(fp)
 	if err != nil {
-		log.ShowWrite("[Error] serving '%s/%s' badge: %s\n", user, repo, err.Error())
+		log.ShowWrite("[Error] serving '%s/%s' badge: %s", user, repo, err.Error())
 	}
 
 	fp = filepath.Join(resdir, srvcfg.Label.ResultsFile)
@@ -176,13 +176,13 @@ func notValidatedYet(w http.ResponseWriter, r *http.Request, badge []byte, valid
 	tmpl := template.New("layout")
 	tmpl, err := tmpl.Parse(templates.Layout)
 	if err != nil {
-		log.ShowWrite("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
+		log.ShowWrite("[Error] '%s/%s' result: %s", user, repo, err.Error())
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
 		return
 	}
 	tmpl, err = tmpl.Parse(templates.NotValidatedYet)
 	if err != nil {
-		log.ShowWrite("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
+		log.ShowWrite("[Error] '%s/%s' result: %s", user, repo, err.Error())
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
 		return
 	}
@@ -213,7 +213,7 @@ func notValidatedYet(w http.ResponseWriter, r *http.Request, badge []byte, valid
 
 	err = tmpl.ExecuteTemplate(w, "layout", info)
 	if err != nil {
-		log.ShowWrite("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
+		log.ShowWrite("[Error] '%s/%s' result: %s", user, repo, err.Error())
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
 		return
 	}
@@ -223,13 +223,13 @@ func renderInProgress(w http.ResponseWriter, r *http.Request, badge []byte, vali
 	tmpl := template.New("layout")
 	tmpl, err := tmpl.Parse(templates.Layout)
 	if err != nil {
-		log.ShowWrite("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
+		log.ShowWrite("[Error] '%s/%s' result: %s", user, repo, err.Error())
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
 		return
 	}
 	tmpl, err = tmpl.Parse(templates.GenericResults)
 	if err != nil {
-		log.ShowWrite("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
+		log.ShowWrite("[Error] '%s/%s' result: %s", user, repo, err.Error())
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
 		return
 	}
@@ -252,7 +252,7 @@ func renderInProgress(w http.ResponseWriter, r *http.Request, badge []byte, vali
 
 	err = tmpl.ExecuteTemplate(w, "layout", info)
 	if err != nil {
-		log.ShowWrite("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
+		log.ShowWrite("[Error] '%s/%s' result: %s", user, repo, err.Error())
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
 		return
 	}
@@ -278,7 +278,7 @@ func resultsHistory(validator, user, repo string) ResultsHistoryStruct {
 	resdir := filepath.Join(srvcfg.Dir.Result, validator, user, repo)
 	fileinfos, err := myReadDir(resdir)
 	if err != nil {
-		log.ShowWrite("[Error] cannot retrieve results history '%s/%s' result: %s\n", user, repo, err.Error())
+		log.ShowWrite("[Error] cannot retrieve results history '%s/%s' result: %s", user, repo, err.Error())
 		return ret
 	}
 	for _, i := range fileinfos {
@@ -292,7 +292,7 @@ func resultsHistory(validator, user, repo string) ResultsHistoryStruct {
 			var res Result
 			res.Href = pth
 			res.Alt = i.Name()
-			res.Text1 = i.ModTime().Format("2006-01-02")
+			res.Text1 = i.ModTime().UTC().Format("2006-01-02")
 			res.Text2 = i.ModTime().Format("15:04:05")
 			res.Badge = template.HTML(badge)
 			ret.Results = append(ret.Results, res)
@@ -307,7 +307,7 @@ func renderBIDSResults(w http.ResponseWriter, r *http.Request, badge []byte, con
 	err := json.Unmarshal(content, &resBIDS)
 	errMsg := ""
 	if err != nil {
-		log.ShowWrite("[Error] unmarshalling '%s/%s' result: %s\n", user, repo, err.Error())
+		log.ShowWrite("[Error] unmarshalling '%s/%s' result: %s", user, repo, err.Error())
 		errMsg = "Could not validate format as BIDS."
 	}
 
@@ -315,13 +315,13 @@ func renderBIDSResults(w http.ResponseWriter, r *http.Request, badge []byte, con
 	tmpl := template.New("layout")
 	tmpl, err = tmpl.Parse(templates.Layout)
 	if err != nil {
-		log.ShowWrite("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
+		log.ShowWrite("[Error] '%s/%s' result: %s", user, repo, err.Error())
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
 		return
 	}
 	tmpl, err = tmpl.Parse(templates.BidsResults)
 	if err != nil {
-		log.ShowWrite("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
+		log.ShowWrite("[Error] '%s/%s' result: %s", user, repo, err.Error())
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
 		return
 	}
@@ -345,7 +345,7 @@ func renderBIDSResults(w http.ResponseWriter, r *http.Request, badge []byte, con
 
 	err = tmpl.ExecuteTemplate(w, "layout", info)
 	if err != nil {
-		log.ShowWrite("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
+		log.ShowWrite("[Error] '%s/%s' result: %s", user, repo, err.Error())
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
 		return
 	}
@@ -357,13 +357,13 @@ func renderNIXResults(w http.ResponseWriter, r *http.Request, badge []byte, cont
 	tmpl := template.New("layout")
 	tmpl, err := tmpl.Parse(templates.Layout)
 	if err != nil {
-		log.ShowWrite("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
+		log.ShowWrite("[Error] '%s/%s' result: %s", user, repo, err.Error())
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
 		return
 	}
 	tmpl, err = tmpl.Parse(templates.GenericResults)
 	if err != nil {
-		log.ShowWrite("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
+		log.ShowWrite("[Error] '%s/%s' result: %s", user, repo, err.Error())
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
 		return
 	}
@@ -386,7 +386,7 @@ func renderNIXResults(w http.ResponseWriter, r *http.Request, badge []byte, cont
 
 	err = tmpl.ExecuteTemplate(w, "layout", info)
 	if err != nil {
-		log.ShowWrite("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
+		log.ShowWrite("[Error] '%s/%s' result: %s", user, repo, err.Error())
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
 		return
 	}
@@ -398,13 +398,13 @@ func renderODMLResults(w http.ResponseWriter, r *http.Request, badge []byte, con
 	tmpl := template.New("layout")
 	tmpl, err := tmpl.Parse(templates.Layout)
 	if err != nil {
-		log.ShowWrite("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
+		log.ShowWrite("[Error] '%s/%s' result: %s", user, repo, err.Error())
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
 		return
 	}
 	tmpl, err = tmpl.Parse(templates.GenericResults)
 	if err != nil {
-		log.ShowWrite("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
+		log.ShowWrite("[Error] '%s/%s' result: %s", user, repo, err.Error())
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
 		return
 	}
@@ -427,7 +427,7 @@ func renderODMLResults(w http.ResponseWriter, r *http.Request, badge []byte, con
 
 	err = tmpl.ExecuteTemplate(w, "layout", info)
 	if err != nil {
-		log.ShowWrite("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
+		log.ShowWrite("[Error] '%s/%s' result: %s", user, repo, err.Error())
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
 		return
 	}
