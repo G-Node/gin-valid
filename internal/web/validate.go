@@ -208,6 +208,7 @@ func validateNIX(valroot, resdir string) error {
 
 	outBadge := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
 
+	// should walk through each file in the list individually; if there is a broken file, it breaks the whole process.
 	var out, serr bytes.Buffer
 	cmd := exec.Command(srvcfg.Exec.NIX, nixargs...)
 	out.Reset()
@@ -405,13 +406,17 @@ func runValidatorBoth(validator, repopath, commit, commitname string, gcl *gincl
 				// Don't return if processing badge write fails but log the issue
 				log.ShowWrite("[Error] failed to link %q to %q: %s", resdir, latestdir, err.Error())
 			}
-			err = makeSessionKey(gcl, commit)
+			// create a session for the commit and the current validator;
+			// can lead to unpleasantness when multiple hooks trigger other wise
+			keyname := fmt.Sprintf("%s-%s", commit, validator)
+			log.ShowWrite("[Info] creating session key %q", keyname)
+			err = makeSessionKey(gcl, keyname)
 			if err != nil {
 				log.ShowWrite("[Error] failed to create session key: %s", err.Error())
 				writeValFailure(resdir)
 				return
 			}
-			defer deleteSessionKey(gcl, commit)
+			defer deleteSessionKey(gcl, keyname)
 		}
 		// TODO: if (annexed) content is not available yet, wait and retry.  We
 		// would have to set a max timeout for this.  The issue is that when a user
@@ -429,57 +434,12 @@ func runValidatorBoth(validator, repopath, commit, commitname string, gcl *gincl
 			// but it should at least write to stdout.
 			log.ShowWrite("[Error] initializing log file: %s", err.Error())
 		}
-		clonechan := make(chan git.RepoFileStatus)
-		pth, err := os.Getwd()
+
+		err = cloneAndGet(gcl, tmpdir, commit, repopath, automatic)
 		if err != nil {
-			log.ShowWrite("[Error] ascertaining working dir; %s", err.Error())
+			log.ShowWrite(err.Error())
 			writeValFailure(resdir)
 			return
-		}
-		err = os.Chdir(tmpdir)
-		if err != nil {
-			log.ShowWrite("[Error] ascertaining working dir; %s", err.Error())
-			writeValFailure(resdir)
-			return
-		}
-
-		go gcl.CloneRepo(repopath, clonechan)
-		for stat := range clonechan {
-			if stat.Err != nil && stat.Err.Error() != "Error initialising local directory" {
-				log.ShowWrite("[Error] Failed to fetch repository data for %q: %s", repopath, stat.Err.Error())
-				writeValFailure(resdir)
-				return
-			}
-			log.ShowWrite("[Info] %s %s", stat.State, stat.Progress)
-		}
-		log.ShowWrite("[Info] clone complete for '%s'", repopath)
-
-		if automatic {
-			// checkout specific commit then download all content
-			log.ShowWrite("[Info] git checkout %s", commit)
-			err = git.Checkout(commit, nil)
-			if err != nil {
-				log.ShowWrite("[Error] failed to checkout commit %q: %s", commit, err.Error())
-				writeValFailure(resdir)
-				return
-			}
-		}
-		log.ShowWrite("[Info] Downloading content")
-		getcontentchan := make(chan git.RepoFileStatus)
-		// TODO: Get only the content for the files that will be validated
-		go gcl.GetContent([]string{"."}, getcontentchan)
-		for stat := range getcontentchan {
-			if stat.Err != nil {
-				log.ShowWrite("[Error] failed to get content for %q: %s", repopath, stat.Err.Error())
-				writeValFailure(resdir)
-				return
-			}
-			log.ShowWrite("[Info] %s %s %s", stat.State, stat.FileName, stat.Progress)
-		}
-		log.ShowWrite("[Info] get-content complete")
-		err = os.Chdir(pth)
-		if err != nil {
-			log.ShowWrite("[Error] changing back to original dir %q: %s", pth, err.Error())
 		}
 
 		switch validator {
@@ -494,12 +454,67 @@ func runValidatorBoth(validator, repopath, commit, commitname string, gcl *gincl
 		}
 
 		if err != nil {
+			// this does not properly log the occurred error; do this here
+			// and refactor the function to include the type of validation that failed
 			writeValFailure(resdir)
 		}
 	}()
 	return respath
 }
+
+// cloneAndGet clones a gin repository to a specified local directory, checks out
+// the git master branch and downloads any required annex content.
+// If a commit hash has been provided, this commit is checked out instead of the
+// latest git commit before the annex content download is initiated.
+func cloneAndGet(gcl *ginclient.Client, tmpdir, commit, repopath string, checkoutCommit bool) error {
+	// make sure the push event had time to process on gin web
+	// after the webhook has triggered before starting to clone and fetch the content.
+	time.Sleep(5 * time.Second)
+
+	clonechan := make(chan git.RepoFileStatus)
+	go remoteCloneRepo(gcl, repopath, tmpdir, clonechan)
+	for stat := range clonechan {
+		if stat.Err != nil && stat.Err.Error() != "Error initialising local directory" {
+			return fmt.Errorf("[Error] Failed to clone %q: %s", repopath, stat.Err.Error())
+		}
+		log.ShowWrite("[Info] %s %s", stat.State, stat.Progress)
+	}
+	log.ShowWrite("[Info] %q clone complete", repopath)
+
+	// The repo has been cloned, now provide the full path to the root of the directory
+	repoPathParts := strings.SplitN(repopath, "/", 2)
+	repoName := repoPathParts[1]
+	repoDir := filepath.Join(tmpdir, repoName)
+	remoteGitDir, err := filepath.Abs(repoDir)
+	if err != nil {
+		return fmt.Errorf("[Error] getting absolute path for %q", repoDir)
+	}
+
+	if checkoutCommit {
+		// checkout specific commit
+		err := remoteCommitCheckout(remoteGitDir, commit)
+		if err != nil {
+			return fmt.Errorf("[Error] failed to checkout commit %q: %s", commit, err.Error())
+		}
+	}
+	log.ShowWrite("[Info] Downloading content")
+	getcontentchan := make(chan git.RepoFileStatus)
+	// TODO: Get only the content for the files that will be validated
+	// do not format annex output as json
+	rawMode := false
+	go remoteGetContent(remoteGitDir, getcontentchan, rawMode)
+	for stat := range getcontentchan {
+		if stat.Err != nil {
+			return fmt.Errorf("[Error] failed to get content for %q: %s", repopath, stat.Err.Error())
+		}
+		log.ShowWrite("[Info] %s %s %s", stat.State, stat.FileName, stat.Progress)
+	}
+	log.ShowWrite("[Info] get-content complete")
+	return nil
+}
+
 func runValidator(validator, repopath, commit string, gcl *ginclient.Client) {
+	// change this automatic to a check for "HEAD" vs commit hash in the validator function
 	automatic := true
 	runValidatorBoth(validator, repopath, commit, commit, gcl, automatic)
 }
