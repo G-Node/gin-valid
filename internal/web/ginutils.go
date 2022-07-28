@@ -1,6 +1,7 @@
 package web
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -41,6 +42,23 @@ func localCalcRate(dbytes int, dt time.Duration) string {
 	}
 	rate := int64(dbytes) * 1000000000 / dtns
 	return fmt.Sprintf("%s/s", humanize.IBytes(uint64(rate)))
+}
+
+// isGitRepo checks if a provided directory is a git repository
+// and returns a corresponding boolean value. It does not check
+// whether the provided path is the root of the git repository.
+func isGitRepo(path string) bool {
+	cmd := gingit.Command("version")
+	cmdargs := []string{"git", "-C", path, "rev-parse"}
+	cmd.Args = cmdargs
+	_, stderr, err := cmd.OutputError()
+	if err != nil {
+		log.ShowWrite("[Error] running git rev-parse: %s", err.Error())
+		return false
+	} else if bytes.Contains(stderr, []byte("not a git repository")) {
+		return false
+	}
+	return true
 }
 
 // remoteAnnexGet retrieves the annex content of all annex files at a provided
