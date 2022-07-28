@@ -84,6 +84,36 @@ func isGitRepo(path string) bool {
 	return true
 }
 
+// remoteAnnexInit initialises a git repository found at a provided path for annex.
+// The provided directory is not explicitly checked whether it exists and
+// it is assumed that it is the root of a git repository.
+// This function is a modified version of the gin-client git.AnnexInit function.
+func remoteAnnexInit(gitdir, description string) error {
+	err := remoteGitConfigSet(gitdir, "annex.backends", "MD5")
+	if err != nil {
+		log.ShowWrite(err.Error())
+	}
+	err = remoteGitConfigSet(gitdir, "annex.addunlocked", "true")
+	if err != nil {
+		log.ShowWrite(err.Error())
+		return err
+	}
+	args := []string{"init", "--version=7", description}
+	// hijack gin command environment for remote gitdir execution
+	cmd := gingit.AnnexCommand(args...)
+	cmdargs := []string{"git", "-C", gitdir, "annex"}
+	cmdargs = append(cmdargs, args...)
+	cmd.Args = cmdargs
+	_, stderr, err := cmd.OutputError()
+	if err != nil {
+		log.ShowWrite("[Error] err: %s stderr: %s", err.Error(), string(stderr))
+		initError := fmt.Errorf("repository annex initialisation failed: %s", string(stderr))
+		return initError
+	}
+
+	return nil
+}
+
 // remoteGetContent downloads the contents of annex placeholder files in a checked
 // out git repository found at a provided directory path. The git annex get commands
 // will be run at the provided directory and not the current one.
