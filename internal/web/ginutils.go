@@ -12,6 +12,7 @@ import (
 
 	"github.com/G-Node/gin-cli/ginclient"
 	gingit "github.com/G-Node/gin-cli/git"
+	"github.com/G-Node/gin-cli/git/shell"
 	"github.com/G-Node/gin-valid/internal/log"
 	humanize "github.com/dustin/go-humanize"
 )
@@ -35,6 +36,8 @@ type localAnnexProgress struct {
 	TotalSize       int              `json:"total-size"`
 	PercentProgress string           `json:"percent-progress"`
 }
+
+type localginerror = shell.Error
 
 // localCalcRate is a copy of the private gin-client function
 // calcRate required to run the gin-client annex get.
@@ -85,6 +88,49 @@ func isGitRepo(path string) bool {
 		return false
 	}
 	return true
+}
+
+// remoteInitDir initialises a git repository at a provided path
+// with the default remote and git (and annex) configuration options.
+// It will further checkout the "master" branch for the provided
+// repository.
+// This function is a modified version of the gin-client InitDir method.
+func remoteInitDir(gincl *ginclient.Client, gitdir string) error {
+	log.ShowWrite("[Info] initializing git config at %q", gitdir)
+	initerr := localginerror{Origin: "InitDir", Description: "Error initialising local directory"}
+
+	// check if the provided directory exists and is a git directory
+	if _, err := os.Stat(gitdir); os.IsNotExist(err) {
+		initerr.UError = fmt.Sprintf("[Error] gitdir %q not found", gitdir)
+		return initerr
+	} else if !isGitRepo(gitdir) {
+		initerr.UError = fmt.Sprintf("[Error] %q is not a git repository", gitdir)
+		return initerr
+	}
+
+	remoteInitConfig(gincl, gitdir)
+
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = "(unknownhost)"
+	}
+	description := fmt.Sprintf("%s@%s", gincl.Username, hostname)
+	err = remoteAnnexInit(gitdir, description)
+	if err != nil {
+		initerr.UError = err.Error()
+		return initerr
+	}
+
+	// ensure the master branch is checked out by default
+	cmd := gingit.Command("checkout", "master")
+	// hijack gin command environment for remote gitdir execution
+	cmd.Args = []string{"git", "-C", gitdir, "checkout", "master"}
+	_, stderr, err := cmd.OutputError()
+	if err != nil {
+		log.ShowWrite("[Error] checking out master: err: %s stderr: %s", err.Error(), string(stderr))
+	}
+
+	return nil
 }
 
 // remoteInitConfig adds user information and gin specific
