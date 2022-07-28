@@ -61,14 +61,32 @@ func isGitRepo(path string) bool {
 	return true
 }
 
+// remoteGetContent downloads the contents of annex placeholder files in a checked
+// out git repository found at a provided directory path. The git annex get commands
+// will be run at the provided directory and not the current one.
+// The "rawMode" argument defines whether the annex command output will be
+// raw or json formatted.
+// The status channel 'getcontchan' is closed when this function returns.
+// This function is a modified copy of the gin-client GetContent method to avoid
+// os.Chdir into the git repository.
+func remoteGetContent(remoteGitDir string, getcontchan chan<- gingit.RepoFileStatus, rawMode bool) {
+	defer close(getcontchan)
+	log.ShowWrite("[Info] remoteGetContent at path %q", remoteGitDir)
+
+	annexgetchan := make(chan gingit.RepoFileStatus)
+	go remoteAnnexGet(remoteGitDir, annexgetchan, rawMode)
+	for stat := range annexgetchan {
+		getcontchan <- stat
+	}
+}
+
 // remoteAnnexGet retrieves the annex content of all annex files at a provided
 // git directory path. Function returns if the directory path is not found.
 // The "rawMode" argument defines whether the annex command output will be
 // raw or json formatted.
 // The status channel 'getchan' is closed when this function returns.
-// This function is a modified version of the gin-client annex get function to
-// support execution in a specified git directory without the need to change
-// directory.
+// This function is a modified version of the gin-client AnnexGet method to avoid
+// os.Chdir into the git repository.
 func remoteAnnexGet(gitdir string, getchan chan<- gingit.RepoFileStatus, rawMode bool) {
 	defer close(getchan)
 	log.ShowWrite("[Info] remoteAnnexGet at directory %q", gitdir)
