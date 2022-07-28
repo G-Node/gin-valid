@@ -39,8 +39,7 @@ type localAnnexProgress struct {
 
 type localginerror = shell.Error
 
-// localCalcRate is a copy of the private gin-client function
-// calcRate required to run the gin-client annex get.
+// localCalcRate is a copy of the private gin-client function calcRate.
 func localCalcRate(dbytes int, dt time.Duration) string {
 	dtns := dt.Nanoseconds()
 	if dtns <= 0 || dbytes <= 0 {
@@ -48,6 +47,25 @@ func localCalcRate(dbytes int, dt time.Duration) string {
 	}
 	rate := int64(dbytes) * 1000000000 / dtns
 	return fmt.Sprintf("%s/s", humanize.IBytes(uint64(rate)))
+}
+
+// localcutline is a copy of the private gin-client function cutline.
+func localcutline(b []byte) (string, bool) {
+	idx := -1
+	cridx := bytes.IndexByte(b, '\r')
+	nlidx := bytes.IndexByte(b, '\n')
+	if cridx > 0 {
+		idx = cridx
+	} else {
+		cridx = len(b) + 1
+	}
+	if nlidx > 0 && nlidx < cridx {
+		idx = nlidx
+	}
+	if idx <= 0 {
+		return string(b), true
+	}
+	return string(b[:idx]), false
 }
 
 // remoteGitConfigSet sets a git config key:value pair for a
@@ -88,6 +106,84 @@ func isGitRepo(path string) bool {
 		return false
 	}
 	return true
+}
+
+// remoteClone clones a specified git repository to a specified local directory.
+// The status channel 'clonechan' is closed when this function returns.
+// This function is a modified version of the gin-client git.Clone function.
+func remoteClone(remotepath string, repopath string, clonedir string, clonechan chan<- gingit.RepoFileStatus) {
+	defer close(clonechan)
+	fn := fmt.Sprintf("Clone(%s)", remotepath)
+
+	args := []string{"clone", "--progress", remotepath}
+	if runtime.GOOS == "windows" {
+		// force disable symlinks even if user can create them
+		// see https://git-annex.branchable.com/bugs/Symlink_support_on_Windows_10_Creators_Update_with_Developer_Mode/
+		args = append([]string{"-c", "core.symlinks=false"}, args...)
+	}
+	cmd := gingit.Command(args...)
+	// hijack gingit to execute command remotely
+	cmdargs := []string{"git", "-C", clonedir}
+	cmdargs = append(cmdargs, args...)
+	cmd.Args = cmdargs
+	err := cmd.Start()
+	if err != nil {
+		clonechan <- gingit.RepoFileStatus{Err: localginerror{UError: err.Error(), Origin: fn}}
+		return
+	}
+
+	var line string
+	var stderr []byte
+	var status gingit.RepoFileStatus
+	status.State = "Downloading repository"
+	clonechan <- status
+	var rerr error
+	readbuffer := make([]byte, 1024)
+	var nread, errhead int
+	var eob, eof bool
+	lineInput := cmd.Args
+	input := strings.Join(lineInput, " ")
+	status.RawInput = input
+	// git clone progress prints to stderr
+	for eof = false; !eof; nread, rerr = cmd.ErrReader.Read(readbuffer) {
+		if rerr != nil && errhead == len(stderr) {
+			eof = true
+		}
+		stderr = append(stderr, readbuffer[:nread]...)
+		for eob = false; !eob || errhead < len(stderr); line, eob = localcutline(stderr[errhead:]) {
+			if len(line) == 0 {
+				errhead++
+				break
+			}
+			errhead += len(line) + 1
+			words := strings.Fields(line)
+			status.FileName = repopath
+			if strings.HasPrefix(line, "Receiving objects") {
+				if len(words) > 2 {
+					status.Progress = words[2]
+				}
+				if len(words) > 8 {
+					rate := fmt.Sprintf("%s%s", words[7], words[8])
+					rate = strings.TrimSuffix(rate, ",")
+					status.Rate = rate
+					status.RawOutput = line
+				}
+			}
+			clonechan <- status
+		}
+	}
+
+	errstring := string(stderr)
+	if err = cmd.Wait(); err != nil {
+		log.ShowWrite("[Error] on clone command: %s", err.Error())
+		status.Err = formatCloneErr(errstring, repopath, fn)
+		clonechan <- status
+		// doesn't really need to break here, but let's not send the progcomplete
+		return
+	}
+	// Progress doesn't show 100% if cloning an empty repository, so let's force it
+	status.Progress = "100%"
+	clonechan <- status
 }
 
 // formatCloneErr handles clone error messages and returns
