@@ -44,6 +44,29 @@ func localCalcRate(dbytes int, dt time.Duration) string {
 	return fmt.Sprintf("%s/s", humanize.IBytes(uint64(rate)))
 }
 
+// remoteGitConfigSet sets a git config key:value pair for a
+// git repository at a provided directory. If the directory
+// does not exist or is not the root of a git repository, an
+// error is returned.
+// This function is a modified version of the gin-client git.ConfigSet function.
+func remoteGitConfigSet(gitdir, key, value string) error {
+	log.ShowWrite("[Info] set git config %q: %q at %q", key, value, gitdir)
+	if _, err := os.Stat(gitdir); os.IsNotExist(err) {
+		return fmt.Errorf("[Error] gitdir %q not found", gitdir)
+	} else if !isGitRepo(gitdir) {
+		return fmt.Errorf("[Error] %q is not a git repository", gitdir)
+	}
+
+	cmd := gingit.Command("config", "--local", key, value)
+	// hijack default gin command environment for remote gitdir execution
+	cmd.Args = []string{"git", "-C", gitdir, "config", "--local", key, value}
+	_, stderr, err := cmd.OutputError()
+	if err != nil {
+		return fmt.Errorf("[Error] git config set %q:%q; err: %s; stderr: %s", key, value, err.Error(), string(stderr))
+	}
+	return nil
+}
+
 // isGitRepo checks if a provided directory is a git repository
 // and returns a corresponding boolean value. It does not check
 // whether the provided path is the root of the git repository.
@@ -67,8 +90,7 @@ func isGitRepo(path string) bool {
 // The "rawMode" argument defines whether the annex command output will be
 // raw or json formatted.
 // The status channel 'getcontchan' is closed when this function returns.
-// This function is a modified copy of the gin-client GetContent method to avoid
-// os.Chdir into the git repository.
+// This function is a modified version of the gin-client GetContent method.
 func remoteGetContent(remoteGitDir string, getcontchan chan<- gingit.RepoFileStatus, rawMode bool) {
 	defer close(getcontchan)
 	log.ShowWrite("[Info] remoteGetContent at path %q", remoteGitDir)
@@ -85,8 +107,7 @@ func remoteGetContent(remoteGitDir string, getcontchan chan<- gingit.RepoFileSta
 // The "rawMode" argument defines whether the annex command output will be
 // raw or json formatted.
 // The status channel 'getchan' is closed when this function returns.
-// This function is a modified version of the gin-client AnnexGet method to avoid
-// os.Chdir into the git repository.
+// This function is a modified version of the gin-client AnnexGet method.
 func remoteAnnexGet(gitdir string, getchan chan<- gingit.RepoFileStatus, rawMode bool) {
 	defer close(getchan)
 	log.ShowWrite("[Info] remoteAnnexGet at directory %q", gitdir)
@@ -182,6 +203,7 @@ func remoteAnnexGet(gitdir string, getchan chan<- gingit.RepoFileStatus, rawMode
 // directory location is the root of the required git repository.
 // The function does not check whether the directory exists or
 // if it is a git repository.
+// This function is a modified version of the gin-client git.Checkout function.
 func remoteCommitCheckout(gitdir, hash string) error {
 	log.ShowWrite("[Info] checking out commit %q at %q", hash, gitdir)
 	cmdargs := []string{"git", "-C", gitdir, "checkout", hash, "--"}
