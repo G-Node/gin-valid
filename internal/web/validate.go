@@ -356,7 +356,7 @@ func validateODML(valroot, resdir string) error {
 }
 
 func runValidator(validator, repopath, commit string, gcl *ginclient.Client) string {
-	checkoutCommit := commit == "HEAD"
+	checkoutCommit := commit != "HEAD"
 
 	respath := filepath.Join(validator, repopath, commit)
 	go func() {
