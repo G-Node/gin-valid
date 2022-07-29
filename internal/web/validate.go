@@ -112,7 +112,6 @@ func validateBIDS(valroot, resdir string) error {
 	args = append(args, "--json")
 	args = append(args, valroot)
 
-	// cmd = exec.Command(srvcfg.Exec.BIDS, validateNifti, "--json", valroot)
 	var out, serr bytes.Buffer
 	cmd := exec.Command(srvcfg.Exec.BIDS, args...)
 	out.Reset()
@@ -121,9 +120,7 @@ func validateBIDS(valroot, resdir string) error {
 	cmd.Stderr = &serr
 	// cmd.Dir = tmpdir
 	if err := cmd.Run(); err != nil {
-		err = fmt.Errorf("[Error] running bids validation (%s): %q, %q", valroot, err.Error(), serr.String())
-		log.ShowWrite(err.Error())
-		return err
+		return fmt.Errorf("[Error] running bids validation (%s): %q, %q", valroot, err.Error(), serr.String())
 	}
 
 	// We need this for both the writing of the result and the badge
@@ -133,9 +130,7 @@ func validateBIDS(valroot, resdir string) error {
 	outFile := filepath.Join(resdir, srvcfg.Label.ResultsFile)
 	err := ioutil.WriteFile(outFile, []byte(output), os.ModePerm)
 	if err != nil {
-		err = fmt.Errorf("[Error] writing results file for %q", valroot)
-		log.ShowWrite(err.Error())
-		return err
+		return fmt.Errorf("[Error] writing results file for %q", valroot)
 	}
 
 	// Write proper badge according to result
@@ -143,9 +138,7 @@ func validateBIDS(valroot, resdir string) error {
 	var parseBIDS BidsRoot
 	err = json.Unmarshal(output, &parseBIDS)
 	if err != nil {
-		err = fmt.Errorf("[Error] unmarshalling results json: %s", err.Error())
-		log.ShowWrite(err.Error())
-		return err
+		return fmt.Errorf("[Error] unmarshalling results json: %s", err.Error())
 	}
 
 	if len(parseBIDS.Issues.Errors) > 0 {
@@ -156,9 +149,7 @@ func validateBIDS(valroot, resdir string) error {
 
 	err = ioutil.WriteFile(outBadge, []byte(content), os.ModePerm)
 	if err != nil {
-		err = fmt.Errorf("[Error] writing results badge for %q", valroot)
-		log.ShowWrite(err.Error())
-		return err
+		return fmt.Errorf("[Error] writing results badge for %q", valroot)
 	}
 
 	log.ShowWrite("[Info] finished validating repo at %q", valroot)
@@ -301,9 +292,7 @@ func validateODML(valroot, resdir string) error {
 
 	err := filepath.Walk(valroot, odmlfinder)
 	if err != nil {
-		err = fmt.Errorf("[Error] while looking for odML files in repository at %q: %s", valroot, err.Error())
-		log.ShowWrite(err.Error())
-		return err
+		return fmt.Errorf("[Error] while looking for odML files in repository at %q: %s", valroot, err.Error())
 	}
 
 	outBadge := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
@@ -315,9 +304,7 @@ func validateODML(valroot, resdir string) error {
 	cmd.Stdout = &out
 	cmd.Stderr = &serr
 	if err = cmd.Run(); err != nil {
-		err = fmt.Errorf("[Error] running odML validation (%s): '%s', '%s'", valroot, err.Error(), serr.String())
-		log.ShowWrite(err.Error())
-		return err
+		return fmt.Errorf("[Error] running odML validation (%s): '%s', '%s'", valroot, err.Error(), serr.String())
 	}
 
 	// We need this for both the writing of the result and the badge
@@ -339,16 +326,12 @@ func validateODML(valroot, resdir string) error {
 	outFile := filepath.Join(resdir, srvcfg.Label.ResultsFile)
 	err = ioutil.WriteFile(outFile, output, os.ModePerm)
 	if err != nil {
-		err = fmt.Errorf("[Error] writing results file for %q", valroot)
-		log.ShowWrite(err.Error())
-		return err
+		return fmt.Errorf("[Error] writing results file for %q", valroot)
 	}
 
 	err = ioutil.WriteFile(outBadge, badge, os.ModePerm)
 	if err != nil {
-		err = fmt.Errorf("[Error] writing results badge for %q", valroot)
-		log.ShowWrite(err.Error())
-		return err
+		return fmt.Errorf("[Error] writing results badge for %q", valroot)
 	}
 
 	log.ShowWrite("[Info] finished validating repo at %q", valroot)
