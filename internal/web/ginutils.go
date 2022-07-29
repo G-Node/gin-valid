@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -493,4 +494,20 @@ func remoteCommitCheckout(gitdir, hash string) error {
 		return fmt.Errorf(string(stderr))
 	}
 	return nil
+}
+
+// getRepoCommit uses a gin client connection to query the latest commit
+// of a provided gin repository and returns either an error or
+// the commit hash as a string.
+func getRepoCommit(client *ginclient.Client, repo string) (string, error) {
+	reqpath := fmt.Sprintf("api/v1/repos/%s/commits/refs/heads/master", repo)
+	resp, err := client.Get(reqpath)
+	if err != nil {
+		return "", fmt.Errorf("failed to get latest commit hash for %q: %s", repo, err.Error())
+	}
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read latest commit hash from response for %q: %s", repo, err.Error())
+	}
+	return string(data), nil
 }
