@@ -69,7 +69,8 @@ func DisableHook(w http.ResponseWriter, r *http.Request) {
 	err = deleteValidHook(repopath, hookid, ut)
 	if err != nil {
 		// TODO: Check if failure is for other reasons and maybe return 500 instead
-		fail(w, r, http.StatusUnauthorized, err.Error())
+		log.ShowWrite(err.Error())
+		fail(w, r, http.StatusUnauthorized, "Could not remove hook")
 		return
 	}
 	http.Redirect(w, r, fmt.Sprintf("/repos/%s/hooks", repopath), http.StatusFound)
@@ -135,14 +136,25 @@ func deleteValidHook(repopath string, id int, usertoken gweb.UserToken) error {
 
 	res, err := client.Delete(fmt.Sprintf("/api/v1/repos/%s/hooks/%d", repopath, id))
 	if err != nil {
-		log.ShowWrite("[Error] bad response from server %s", err.Error())
-		return err
+		return fmt.Errorf("[Error] bad response from server: %s", err.Error())
 	}
 	defer res.Body.Close()
 	log.ShowWrite("[Info] removed hook for %s", repopath)
 
-	// TODO remove token link only if there are no other validator hooks for this repository left
-	log.ShowWrite("[Info] removing repository -> token link")
+	// delete repo token only if there are no more hooks registered for the current repo
+	hooks, err := getRepoHooks(client, repopath)
+	if err != nil {
+		return fmt.Errorf("[Error] checking remaining repo hooks: %s", err.Error())
+	}
+	// return without removing the repo->token link if a single active hook is found
+	log.ShowWrite("[Info] current repo hooks: %v", hooks)
+	for valname := range hooks {
+		if hooks[valname].State == hookenabled {
+			return nil
+		}
+	}
+
+	log.ShowWrite("[Info] found no active hook, removing repository -> token link")
 	err = rmTokenRepoLink(repopath)
 	if err != nil {
 		log.ShowWrite("[Error] failed to delete token link: %s", err.Error())
