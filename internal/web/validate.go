@@ -183,12 +183,13 @@ func runNIXvalidation(nixexec, nixfile string) ([]byte, error) {
 // validateNIX runs the NIX validator on the specified repository in 'path'
 // and saves the results to the appropriate document for later viewing.
 func validateNIX(valroot, resdir string) error {
+	log.ShowWrite("[Info] starting NIX validation in %s", valroot)
 	srvcfg := config.Read()
 
 	// TODO: Allow validator config that specifies file paths to validate
 	// For now we validate everything
 	nixargs := make([]string, 0)
-	nixargs = append(nixargs, "validate")
+
 	// Find all NIX files (.nix) in the repository
 	nixfinder := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -215,34 +216,36 @@ func validateNIX(valroot, resdir string) error {
 
 	err := filepath.Walk(valroot, nixfinder)
 	if err != nil {
-		err = fmt.Errorf("[Error] while looking for NIX files in repository at %q: %s", valroot, err.Error())
-		log.ShowWrite(err.Error())
-		return err
+		return fmt.Errorf("[Error] while looking for NIX files in repository at %q: %s", valroot, err.Error())
 	}
 
 	outBadge := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
 
 	// should walk through each file in the list individually; if there is a broken file, it breaks the whole process.
-	var out, serr bytes.Buffer
-	cmd := exec.Command(srvcfg.Exec.NIX, nixargs...)
-	out.Reset()
-	serr.Reset()
-	cmd.Stdout = &out
-	cmd.Stderr = &serr
-	// cmd.Dir = tmpdir
-	if err = cmd.Run(); err != nil {
-		err = fmt.Errorf("[Error] running NIX validation (%s): %q, %q", valroot, err.Error(), serr.String())
-		log.ShowWrite(err.Error())
-		return err
+	log.ShowWrite("[Info] found %d nix files: %v", len(nixargs), nixargs)
+	var output []byte
+	var invalidFile bool
+	for _, nixfile := range nixargs {
+		outbytes, err := runNIXvalidation(srvcfg.Exec.NIX, nixfile)
+		if err != nil {
+			log.ShowWrite("[Error] running validation on %s: %s", nixfile, err.Error())
+			errout := fmt.Sprintf("Results for %q\n\tError: could not open file\n\n", nixfile)
+			output = append(output, errout...)
+			invalidFile = true
+		} else {
+			output = append(output, outbytes...)
+		}
 	}
 
 	// We need this for both the writing of the result and the badge
 	errtag := []byte("with errors")
 	warntag := []byte("with warnings")
 	var badge []byte
-	output := out.Bytes()
+	// output := out.Bytes()
 	switch {
 	case bytes.Contains(output, errtag):
+		badge = []byte(resources.ErrorBadge)
+	case invalidFile:
 		badge = []byte(resources.ErrorBadge)
 	case bytes.Contains(output, warntag):
 		badge = []byte(resources.WarningBadge)
@@ -254,16 +257,12 @@ func validateNIX(valroot, resdir string) error {
 	outFile := filepath.Join(resdir, srvcfg.Label.ResultsFile)
 	err = ioutil.WriteFile(outFile, output, os.ModePerm)
 	if err != nil {
-		err = fmt.Errorf("[Error] writing results file for %q", valroot)
-		log.ShowWrite(err.Error())
-		return err
+		return fmt.Errorf("[Error] writing results file for %q", valroot)
 	}
 
 	err = ioutil.WriteFile(outBadge, badge, os.ModePerm)
 	if err != nil {
-		err = fmt.Errorf("[Error] writing results badge for %q", valroot)
-		log.ShowWrite(err.Error())
-		return err
+		return fmt.Errorf("[Error] writing results badge for %q", valroot)
 	}
 
 	log.ShowWrite("[Info] finished validating repo at %q", valroot)
