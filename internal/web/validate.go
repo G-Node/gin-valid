@@ -355,10 +355,26 @@ func validateODML(valroot, resdir string) error {
 	return nil
 }
 
+// handleHeadCommit returns the latest commit hash of a repository, if HEAD is being used
+// as commit string; otherwise return the commit string unchanged.
+func handleHeadCommit(repopath, checkCommit string, gcl *ginclient.Client) string {
+	if checkCommit != "HEAD" {
+		return checkCommit
+	}
+	useCommitName, err := getRepoCommit(gcl, repopath)
+	if err != nil {
+		log.ShowWrite("[Error] could not fetch latest commit for repo %s: %s", repopath, err.Error())
+		return checkCommit
+	}
+	log.ShowWrite("[Info] repo %s uses commit %s as HEAD commit", repopath, useCommitName)
+	return useCommitName
+}
+
 func runValidator(validator, repopath, commit string, gcl *ginclient.Client) string {
 	checkoutCommit := commit != "HEAD"
+	useCommitName := handleHeadCommit(repopath, commit, gcl)
+	respath := filepath.Join(validator, repopath, useCommitName)
 
-	respath := filepath.Join(validator, repopath, commit)
 	go func() {
 		log.ShowWrite("[Info] running %s validation on repository %q (%s)", validator, repopath, commit)
 
