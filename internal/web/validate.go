@@ -165,6 +165,21 @@ func validateBIDS(valroot, resdir string) error {
 	return nil
 }
 
+// runNIXvalidation runs the nix validator on a specified file and
+// returns the results of the validation.
+func runNIXvalidation(nixexec, nixfile string) ([]byte, error) {
+	var out, serr bytes.Buffer
+	cmd := exec.Command(nixexec, "validate", nixfile)
+	out.Reset()
+	serr.Reset()
+	cmd.Stdout = &out
+	cmd.Stderr = &serr
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("[Error] running NIX validation %q, %q", err.Error(), serr.String())
+	}
+	return out.Bytes(), nil
+}
+
 // validateNIX runs the NIX validator on the specified repository in 'path'
 // and saves the results to the appropriate document for later viewing.
 func validateNIX(valroot, resdir string) error {
