@@ -77,9 +77,9 @@ func handleValidationConfig(cfgpath string) (Validationcfg, error) {
 // and saves the results to the appropriate document for later viewing.
 func validateBIDS(valroot, resdir string) error {
 	srvcfg := config.Read()
-	// Use validation config file if available
 	var validateNifti bool
 
+	// Use validation config file if available
 	cfgpath := filepath.Join(valroot, srvcfg.Label.ValidationConfigFile)
 	log.ShowWrite("[Info] looking for config file at %q", cfgpath)
 	if fi, err := os.Stat(cfgpath); err == nil && !fi.IsDir() {
@@ -118,9 +118,11 @@ func validateBIDS(valroot, resdir string) error {
 	serr.Reset()
 	cmd.Stdout = &out
 	cmd.Stderr = &serr
-	// cmd.Dir = tmpdir
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("[Error] running bids validation (%s): %q, %q", valroot, err.Error(), serr.String())
+	err := cmd.Run()
+	// Only return if the error is not related to the bids validation; if the out string contains information
+	// we can continue
+	if err != nil && !strings.Contains(out.String(), "QUICK_VALIDATION_FAILED") {
+		return fmt.Errorf("[Error] running bids validation (%s): %q, %q, %q", valroot, err.Error(), serr.String(), out.String())
 	}
 
 	// We need this for both the writing of the result and the badge
@@ -128,7 +130,7 @@ func validateBIDS(valroot, resdir string) error {
 
 	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
 	outFile := filepath.Join(resdir, srvcfg.Label.ResultsFile)
-	err := ioutil.WriteFile(outFile, []byte(output), os.ModePerm)
+	err = ioutil.WriteFile(outFile, []byte(output), os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("[Error] writing results file for %q", valroot)
 	}
