@@ -28,7 +28,7 @@ RUN go build ./cmd/ginvalid
 ### ============================ ###
 
 # RUNNER IMAGE
-FROM alpine:3.14
+FROM alpine:3.16
 
 # Runtime deps
 RUN echo http://dl-2.alpinelinux.org/alpine/edge/community/ >> /etc/apk/repositories
