@@ -84,7 +84,6 @@ COPY ./assets /assets
 
 # Test validation
 RUN odml-validate /resources/odmldata.odml
-RUN nixio -h
 RUN nixio validate /resources/nixdata.nix
 RUN bids-validator --version
 
