@@ -25,7 +25,6 @@ import (
 	"github.com/G-Node/gin-valid/internal/resources/templates"
 	gogs "github.com/gogits/go-gogs-client"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 )
 
@@ -78,9 +77,9 @@ func handleValidationConfig(cfgpath string) (Validationcfg, error) {
 // and saves the results to the appropriate document for later viewing.
 func validateBIDS(valroot, resdir string) error {
 	srvcfg := config.Read()
-	// Use validation config file if available
 	var validateNifti bool
 
+	// Use validation config file if available
 	cfgpath := filepath.Join(valroot, srvcfg.Label.ValidationConfigFile)
 	log.ShowWrite("[Info] looking for config file at %q", cfgpath)
 	if fi, err := os.Stat(cfgpath); err == nil && !fi.IsDir() {
@@ -113,18 +112,17 @@ func validateBIDS(valroot, resdir string) error {
 	args = append(args, "--json")
 	args = append(args, valroot)
 
-	// cmd = exec.Command(srvcfg.Exec.BIDS, validateNifti, "--json", valroot)
 	var out, serr bytes.Buffer
 	cmd := exec.Command(srvcfg.Exec.BIDS, args...)
 	out.Reset()
 	serr.Reset()
 	cmd.Stdout = &out
 	cmd.Stderr = &serr
-	// cmd.Dir = tmpdir
-	if err := cmd.Run(); err != nil {
-		err = fmt.Errorf("[Error] running bids validation (%s): %q, %q", valroot, err.Error(), serr.String())
-		log.ShowWrite(err.Error())
-		return err
+	err := cmd.Run()
+	// Only return if the error is not related to the bids validation; if the out string contains information
+	// we can continue
+	if err != nil && !strings.Contains(out.String(), "QUICK_VALIDATION_FAILED") {
+		return fmt.Errorf("[Error] running bids validation (%s): %q, %q, %q", valroot, err.Error(), serr.String(), out.String())
 	}
 
 	// We need this for both the writing of the result and the badge
@@ -132,11 +130,9 @@ func validateBIDS(valroot, resdir string) error {
 
 	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
 	outFile := filepath.Join(resdir, srvcfg.Label.ResultsFile)
-	err := ioutil.WriteFile(outFile, []byte(output), os.ModePerm)
+	err = ioutil.WriteFile(outFile, []byte(output), os.ModePerm)
 	if err != nil {
-		err = fmt.Errorf("[Error] writing results file for %q", valroot)
-		log.ShowWrite(err.Error())
-		return err
+		return fmt.Errorf("[Error] writing results file for %q", valroot)
 	}
 
 	// Write proper badge according to result
@@ -144,9 +140,7 @@ func validateBIDS(valroot, resdir string) error {
 	var parseBIDS BidsRoot
 	err = json.Unmarshal(output, &parseBIDS)
 	if err != nil {
-		err = fmt.Errorf("[Error] unmarshalling results json: %s", err.Error())
-		log.ShowWrite(err.Error())
-		return err
+		return fmt.Errorf("[Error] unmarshalling results json: %s", err.Error())
 	}
 
 	if len(parseBIDS.Issues.Errors) > 0 {
@@ -157,24 +151,38 @@ func validateBIDS(valroot, resdir string) error {
 
 	err = ioutil.WriteFile(outBadge, []byte(content), os.ModePerm)
 	if err != nil {
-		err = fmt.Errorf("[Error] writing results badge for %q", valroot)
-		log.ShowWrite(err.Error())
-		return err
+		return fmt.Errorf("[Error] writing results badge for %q", valroot)
 	}
 
 	log.ShowWrite("[Info] finished validating repo at %q", valroot)
 	return nil
 }
 
+// runNIXvalidation runs the nix validator on a specified file and
+// returns the results of the validation.
+func runNIXvalidation(nixexec, nixfile string) ([]byte, error) {
+	var out, serr bytes.Buffer
+	cmd := exec.Command(nixexec, "validate", nixfile)
+	out.Reset()
+	serr.Reset()
+	cmd.Stdout = &out
+	cmd.Stderr = &serr
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("[Error] running NIX validation %q, %q", err.Error(), serr.String())
+	}
+	return out.Bytes(), nil
+}
+
 // validateNIX runs the NIX validator on the specified repository in 'path'
 // and saves the results to the appropriate document for later viewing.
 func validateNIX(valroot, resdir string) error {
+	log.ShowWrite("[Info] starting NIX validation in %s", valroot)
 	srvcfg := config.Read()
 
 	// TODO: Allow validator config that specifies file paths to validate
 	// For now we validate everything
 	nixargs := make([]string, 0)
-	nixargs = append(nixargs, "validate")
+
 	// Find all NIX files (.nix) in the repository
 	nixfinder := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -201,34 +209,36 @@ func validateNIX(valroot, resdir string) error {
 
 	err := filepath.Walk(valroot, nixfinder)
 	if err != nil {
-		err = fmt.Errorf("[Error] while looking for NIX files in repository at %q: %s", valroot, err.Error())
-		log.ShowWrite(err.Error())
-		return err
+		return fmt.Errorf("[Error] while looking for NIX files in repository at %q: %s", valroot, err.Error())
 	}
 
 	outBadge := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
 
 	// should walk through each file in the list individually; if there is a broken file, it breaks the whole process.
-	var out, serr bytes.Buffer
-	cmd := exec.Command(srvcfg.Exec.NIX, nixargs...)
-	out.Reset()
-	serr.Reset()
-	cmd.Stdout = &out
-	cmd.Stderr = &serr
-	// cmd.Dir = tmpdir
-	if err = cmd.Run(); err != nil {
-		err = fmt.Errorf("[Error] running NIX validation (%s): %q, %q", valroot, err.Error(), serr.String())
-		log.ShowWrite(err.Error())
-		return err
+	log.ShowWrite("[Info] found %d nix files: %v", len(nixargs), nixargs)
+	var output []byte
+	var invalidFile bool
+	for _, nixfile := range nixargs {
+		outbytes, err := runNIXvalidation(srvcfg.Exec.NIX, nixfile)
+		if err != nil {
+			log.ShowWrite("[Error] running validation on %s: %s", nixfile, err.Error())
+			errout := fmt.Sprintf("Results for %q\n\tError: could not open file\n\n", nixfile)
+			output = append(output, errout...)
+			invalidFile = true
+		} else {
+			output = append(output, outbytes...)
+		}
 	}
 
 	// We need this for both the writing of the result and the badge
 	errtag := []byte("with errors")
 	warntag := []byte("with warnings")
 	var badge []byte
-	output := out.Bytes()
+	// output := out.Bytes()
 	switch {
 	case bytes.Contains(output, errtag):
+		badge = []byte(resources.ErrorBadge)
+	case invalidFile:
 		badge = []byte(resources.ErrorBadge)
 	case bytes.Contains(output, warntag):
 		badge = []byte(resources.WarningBadge)
@@ -240,16 +250,12 @@ func validateNIX(valroot, resdir string) error {
 	outFile := filepath.Join(resdir, srvcfg.Label.ResultsFile)
 	err = ioutil.WriteFile(outFile, output, os.ModePerm)
 	if err != nil {
-		err = fmt.Errorf("[Error] writing results file for %q", valroot)
-		log.ShowWrite(err.Error())
-		return err
+		return fmt.Errorf("[Error] writing results file for %q", valroot)
 	}
 
 	err = ioutil.WriteFile(outBadge, badge, os.ModePerm)
 	if err != nil {
-		err = fmt.Errorf("[Error] writing results badge for %q", valroot)
-		log.ShowWrite(err.Error())
-		return err
+		return fmt.Errorf("[Error] writing results badge for %q", valroot)
 	}
 
 	log.ShowWrite("[Info] finished validating repo at %q", valroot)
@@ -288,9 +294,7 @@ func validateODML(valroot, resdir string) error {
 
 	err := filepath.Walk(valroot, odmlfinder)
 	if err != nil {
-		err = fmt.Errorf("[Error] while looking for odML files in repository at %q: %s", valroot, err.Error())
-		log.ShowWrite(err.Error())
-		return err
+		return fmt.Errorf("[Error] while looking for odML files in repository at %q: %s", valroot, err.Error())
 	}
 
 	outBadge := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
@@ -302,9 +306,7 @@ func validateODML(valroot, resdir string) error {
 	cmd.Stdout = &out
 	cmd.Stderr = &serr
 	if err = cmd.Run(); err != nil {
-		err = fmt.Errorf("[Error] running odML validation (%s): '%s', '%s'", valroot, err.Error(), serr.String())
-		log.ShowWrite(err.Error())
-		return err
+		return fmt.Errorf("[Error] running odML validation (%s): '%s', '%s'", valroot, err.Error(), serr.String())
 	}
 
 	// We need this for both the writing of the result and the badge
@@ -326,26 +328,40 @@ func validateODML(valroot, resdir string) error {
 	outFile := filepath.Join(resdir, srvcfg.Label.ResultsFile)
 	err = ioutil.WriteFile(outFile, output, os.ModePerm)
 	if err != nil {
-		err = fmt.Errorf("[Error] writing results file for %q", valroot)
-		log.ShowWrite(err.Error())
-		return err
+		return fmt.Errorf("[Error] writing results file for %q", valroot)
 	}
 
 	err = ioutil.WriteFile(outBadge, badge, os.ModePerm)
 	if err != nil {
-		err = fmt.Errorf("[Error] writing results badge for %q", valroot)
-		log.ShowWrite(err.Error())
-		return err
+		return fmt.Errorf("[Error] writing results badge for %q", valroot)
 	}
 
 	log.ShowWrite("[Info] finished validating repo at %q", valroot)
 	return nil
 }
 
-func runValidatorBoth(validator, repopath, commit, commitname string, gcl *ginclient.Client, automatic bool) string {
-	respath := filepath.Join(validator, repopath, commit)
+// handleHeadCommit returns the latest commit hash of a repository, if HEAD is being used
+// as commit string; otherwise return the commit string unchanged.
+func handleHeadCommit(repopath, checkCommit string, gcl *ginclient.Client) string {
+	if checkCommit != "HEAD" {
+		return checkCommit
+	}
+	useCommitName, err := getRepoCommit(gcl, repopath)
+	if err != nil {
+		log.ShowWrite("[Error] could not fetch latest commit for repo %s: %s", repopath, err.Error())
+		return checkCommit
+	}
+	log.ShowWrite("[Info] repo %s uses commit %s as HEAD commit", repopath, useCommitName)
+	return useCommitName
+}
+
+func runValidator(validator, repopath, commit string, gcl *ginclient.Client) string {
+	checkoutCommit := commit != "HEAD"
+	useCommitName := handleHeadCommit(repopath, commit, gcl)
+	respath := filepath.Join(validator, repopath, useCommitName)
+
 	go func() {
-		log.ShowWrite("[Info] running %s validation on repository %q (%s)", validator, repopath, commitname)
+		log.ShowWrite("[Info] running %s validation on repository %q (%s)", validator, repopath, commit)
 
 		// TODO add check if a repo is currently being validated. Since the cloning
 		// can potentially take quite some time prohibit running the same
@@ -378,7 +394,6 @@ func runValidatorBoth(validator, repopath, commit, commitname string, gcl *gincl
 		_, repo := repopathparts[0], repopathparts[1]
 		valroot := filepath.Join(tmpdir, repo)
 
-		// Enable cleanup once tried and tested
 		defer os.RemoveAll(tmpdir)
 
 		// Add the processing badge and message to display while the validator runs
@@ -394,8 +409,8 @@ func runValidatorBoth(validator, repopath, commit, commitname string, gcl *gincl
 			log.ShowWrite("[Error] writing results file for %q", valroot)
 		}
 
-		if automatic { //TODO should be automatic or not?
-			// Link 'latest' to new res dir to show processing
+		if checkoutCommit {
+			// Link 'latest' to new results dir to show processing
 			latestdir := filepath.Join(filepath.Dir(resdir), "latest")
 			err = os.Remove(latestdir)
 			if err != nil {
@@ -406,8 +421,8 @@ func runValidatorBoth(validator, repopath, commit, commitname string, gcl *gincl
 				// Don't return if processing badge write fails but log the issue
 				log.ShowWrite("[Error] failed to link %q to %q: %s", resdir, latestdir, err.Error())
 			}
-			// create a session for the commit and the current validator;
-			// can lead to unpleasantness when multiple hooks trigger other wise
+			// Create a session for the commit and the current validator;
+			// can lead to unpleasantness when multiple hooks trigger otherwise
 			keyname := fmt.Sprintf("%s-%s", commit, validator)
 			log.ShowWrite("[Info] creating session key %q", keyname)
 			err = makeSessionKey(gcl, keyname)
@@ -418,6 +433,12 @@ func runValidatorBoth(validator, repopath, commit, commitname string, gcl *gincl
 			}
 			defer deleteSessionKey(gcl, keyname)
 		}
+
+		err = glog.Init()
+		if err != nil {
+			log.ShowWrite("[Error] initializing gin client log file: %s", err.Error())
+		}
+
 		// TODO: if (annexed) content is not available yet, wait and retry.  We
 		// would have to set a max timeout for this.  The issue is that when a user
 		// does a 'gin upload' a push happens immediately and the hook is
@@ -427,15 +448,7 @@ func runValidatorBoth(validator, repopath, commit, commitname string, gcl *gincl
 		// until it's available, with a timeout. We could also make it more
 		// efficient by only downloading the content in the directories which are
 		// specified in the validator config (if it exists).
-
-		err = glog.Init()
-		if err != nil {
-			// Weird to log after an error initializing the log file,
-			// but it should at least write to stdout.
-			log.ShowWrite("[Error] initializing log file: %s", err.Error())
-		}
-
-		err = cloneAndGet(gcl, tmpdir, commit, repopath, automatic)
+		err = cloneAndGet(gcl, tmpdir, commit, repopath, checkoutCommit)
 		if err != nil {
 			log.ShowWrite(err.Error())
 			writeValFailure(resdir)
@@ -454,8 +467,7 @@ func runValidatorBoth(validator, repopath, commit, commitname string, gcl *gincl
 		}
 
 		if err != nil {
-			// this does not properly log the occurred error; do this here
-			// and refactor the function to include the type of validation that failed
+			log.ShowWrite(err.Error())
 			writeValFailure(resdir)
 		}
 	}()
@@ -511,17 +523,6 @@ func cloneAndGet(gcl *ginclient.Client, tmpdir, commit, repopath string, checkou
 	}
 	log.ShowWrite("[Info] get-content complete")
 	return nil
-}
-
-func runValidator(validator, repopath, commit string, gcl *ginclient.Client) {
-	// change this automatic to a check for "HEAD" vs commit hash in the validator function
-	automatic := true
-	runValidatorBoth(validator, repopath, commit, commit, gcl, automatic)
-}
-
-func runValidatorPub(validator, repopath string, gcl *ginclient.Client) string {
-	automatic := false
-	return runValidatorBoth(validator, repopath, uuid.New().String(), "HEAD", gcl, automatic)
 }
 
 // writeValFailure writes a badge and page content for when a hook payload is
@@ -599,6 +600,7 @@ func renderValidationForm(w http.ResponseWriter, r *http.Request, errMsg string)
 // PubValidatePost parses the POST data from the root form and calls the
 // validator using the built-in ServiceWaiter.
 func PubValidatePost(w http.ResponseWriter, r *http.Request) {
+	log.ShowWrite("[Info] starting public validation triggered manually")
 	srvcfg := config.Read()
 	ginuser := srvcfg.Settings.GINUser
 
@@ -643,7 +645,8 @@ func PubValidatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respath := runValidatorPub(validator, repopath, gcl)
+	// Run public validation using the latest commit
+	respath := runValidator(validator, repopath, "HEAD", gcl)
 	http.Redirect(w, r, filepath.Join("results", respath), http.StatusFound)
 }
 
@@ -652,7 +655,7 @@ func PubValidatePost(w http.ResponseWriter, r *http.Request) {
 // repository is a valid BIDS dataset.
 // Any cloned files are cleaned up after the check is done.
 func Validate(w http.ResponseWriter, r *http.Request) {
-	log.ShowWrite("[Info] starting validation")
+	log.ShowWrite("[Info] starting validation triggered by hook")
 	// TODO: Simplify/split this function
 	secret := r.Header.Get("X-Gogs-Signature")
 
