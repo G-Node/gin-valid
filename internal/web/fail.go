@@ -13,21 +13,21 @@ import (
 // fail logs an error and renders an error page with the given message,
 // returning the given status code to the user.
 func fail(w http.ResponseWriter, r *http.Request, status int, message string) {
-	log.Write("[error] %s", message)
+	log.ShowWrite("[Info] displaying error message %s", message)
 	w.WriteHeader(status)
 
 	tmpl := template.New("layout")
 	tmpl, err := tmpl.Parse(templates.Layout)
 	if err != nil {
-		log.Write("[Error] failed to parse html layout page. Displaying error message without layout.")
+		log.ShowWrite("[Error] failed to parse html layout page. Displaying error message without layout: %s", err.Error())
 		tmpl = template.New("content")
 	}
 	tmpl, err = tmpl.Parse(templates.Fail)
 	if err != nil {
-		log.Write("[Error] failed to render fail page. Displaying plain error message.")
+		log.ShowWrite("[Error] failed to render fail page. Displaying plain error message: %s", err.Error())
 		_, err = w.Write([]byte(message))
 		if err != nil {
-			log.Write("[Error] failed to write plain error message: %s", err.Error())
+			log.ShowWrite("[Error] failed to write plain error message: %s", err.Error())
 		}
 		return
 	}
@@ -54,6 +54,6 @@ func fail(w http.ResponseWriter, r *http.Request, status int, message string) {
 	}
 	err = tmpl.Execute(w, &errinfo)
 	if err != nil {
-		log.Write("[Error] failed to parse error info to page: %s", err.Error())
+		log.ShowWrite("[Error] failed to parse error info to page: %s", err.Error())
 	}
 }

@@ -70,7 +70,7 @@ func makeSessionKey(gcl *ginclient.Client, keyname string) error {
 
 	configpath, err := gcfg.Path(true)
 	if err != nil {
-		log.Write("Could not create config directory for private key")
+		log.ShowWrite("[Error] could not create config directory for private key: %s", err.Error())
 		return err
 	}
 	keyfilepath := filepath.Join(configpath, fmt.Sprintf("%s.key", keyname))
@@ -99,7 +99,7 @@ func generateNewSessionID() (string, error) {
 	if _, err := io.ReadFull(rand.Reader, id); err != nil {
 		// This will bubble up and result in an authentication failure. Is
 		// there a better message to display to the user? Perhaps 500?
-		log.Write("[error] Failed to generate random session ID")
+		log.ShowWrite("[Error] failed to generate random session ID: %s", err.Error())
 		return "", err
 	}
 	return base64.StdEncoding.EncodeToString(id), nil
@@ -117,33 +117,33 @@ func doLogin(username, password string) (string, error) {
 	clientID := cfg.Settings.ClientID
 
 	// retrieve user's active tokens
-	log.Write("Retrieving tokens for user '%s'", username)
+	log.ShowWrite("[Info] retrieving tokens for user %q", username)
 	tokens, err := gincl.GetTokens(username, password)
 	if err != nil {
 		return "", err
 	}
 
 	// check if we have a gin-valid token
-	log.Write("Checking for existing token")
+	log.ShowWrite("[Info] checking for existing token")
 	for _, token := range tokens {
 		if token.Name == clientID {
 			// found our token
 			gincl.UserToken.Username = username
 			gincl.UserToken.Token = token.Sha1
-			log.Write("Found %s access token", clientID)
+			log.ShowWrite("[Info] found access token %s", clientID)
 			break
 		}
 	}
 
 	if len(gincl.UserToken.Token) == 0 {
 		// no existing token; creating new one
-		log.Write("Requesting new token from server")
+		log.ShowWrite("[Info] requesting new token from server")
 		glog.Write("Performing login from gin-valid")
 		err = gincl.NewToken(username, password, clientID)
 		if err != nil {
 			return "", err
 		}
-		log.Write("Login successful. Username: %s", username)
+		log.ShowWrite("[Info] login successful. Username: %s", username)
 	}
 
 	err = saveToken(gincl.UserToken)
@@ -168,17 +168,17 @@ func LoginGet(w http.ResponseWriter, r *http.Request) {
 
 // loginForm renders the login form
 func loginForm(w http.ResponseWriter, r *http.Request, errMsg string) {
-	log.Write("Login page")
+	log.ShowWrite("[Info] login form page")
 	tmpl := template.New("layout")
 	tmpl, err := tmpl.Parse(templates.Layout)
 	if err != nil {
-		log.Write("[Error] failed to parse html layout page")
+		log.ShowWrite("[Error] failed to parse html layout page: %s", err.Error())
 		fail(w, r, http.StatusInternalServerError, "something went wrong")
 		return
 	}
 	tmpl, err = tmpl.Parse(templates.Login)
 	if err != nil {
-		log.Write("[Error] failed to render login page")
+		log.ShowWrite("[Error] failed to render login page: %s", err.Error())
 		fail(w, r, http.StatusInternalServerError, "something went wrong")
 		return
 	}
@@ -205,7 +205,7 @@ func loginForm(w http.ResponseWriter, r *http.Request, errMsg string) {
 
 // LoginPost logs in the user to the GIN server, storing a session token.
 func LoginPost(w http.ResponseWriter, r *http.Request) {
-	log.ShowWrite("Handling user login")
+	log.ShowWrite("[Info] handling user login")
 	err := r.ParseForm()
 	if err != nil {
 		log.ShowWrite("[Error] could not parse request form data: %s", err.Error())
@@ -216,13 +216,13 @@ func LoginPost(w http.ResponseWriter, r *http.Request) {
 	username := r.FormValue("username")
 	password := r.FormValue("password")
 	if username == "" || password == "" {
-		log.Write("[error] Invalid form data")
+		log.ShowWrite("[Error] missing login form data")
 		loginForm(w, r, "Authentication failed")
 		return
 	}
 	sessionid, err := doLogin(username, password)
 	if err != nil {
-		log.Write("[error] Login failed: %s", err.Error())
+		log.ShowWrite("[Error] login failed: %s", err.Error())
 		loginForm(w, r, "Authentication failed")
 		return
 	}
@@ -275,7 +275,7 @@ func getSessionOrRedirect(w http.ResponseWriter, r *http.Request) (gweb.UserToke
 	usertoken, err := getTokenBySession(cookie.Value)
 	if err != nil {
 		http.Redirect(w, r, "/login", http.StatusFound)
-		log.Write("[Error] Loading token failed: %s", err.Error())
+		log.ShowWrite("[Error] loading token failed: %s", err.Error())
 		return gweb.UserToken{}, fmt.Errorf("invalid session found in cookie")
 	}
 	return usertoken, nil
@@ -287,7 +287,7 @@ func getSessionOrRedirect(w http.ResponseWriter, r *http.Request) (gweb.UserToke
 func ListRepos(w http.ResponseWriter, r *http.Request) {
 	ut, err := getSessionOrRedirect(w, r)
 	if err != nil {
-		log.Write("[Info] %s: Redirecting to login", err.Error())
+		log.ShowWrite("[Info] %s: redirecting to login", err.Error())
 		return
 	}
 
@@ -313,7 +313,7 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("Got %d repos\n", len(userrepos))
+	log.ShowWrite("[Info] found %d repositories", len(userrepos))
 	tmpl := template.New("layout")
 	funcmap := map[string]interface{}{
 		"ToLower": strings.ToLower,
@@ -322,13 +322,13 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 	tmpl.Funcs(funcmap)
 	tmpl, err = tmpl.Parse(templates.Layout)
 	if err != nil {
-		log.Write("[Error] failed to parse html layout page")
+		log.ShowWrite("[Error] failed to parse html layout page: %s", err.Error())
 		fail(w, r, http.StatusInternalServerError, "something went wrong")
 		return
 	}
 	tmpl, err = tmpl.Parse(templates.RepoList)
 	if err != nil {
-		log.Write("[Error] failed to render repository list page: %s", err.Error())
+		log.ShowWrite("[Error] failed to render repository list page: %s", err.Error())
 		fail(w, r, http.StatusInternalServerError, "something went wrong")
 		return
 	}
@@ -393,7 +393,7 @@ func matchValidator(path string) (string, error) {
 	validator := match[1]
 
 	if !helpers.SupportedValidator(validator) {
-		return "", fmt.Errorf("URL matches pattern but validator '%s' is not known", validator)
+		return "", fmt.Errorf("URL matches pattern but validator %q is not known", validator)
 	}
 
 	return validator, nil
@@ -406,12 +406,12 @@ func getRepoHooks(cl *ginclient.Client, repopath string) (map[string]ginhook, er
 	res, err := cl.Get(path.Join("api", "v1", "repos", repopath, "hooks"))
 	if err != nil {
 		// Bad request?
-		log.Write("hook request failed for %s", repopath)
+		log.ShowWrite("[Error] hook request failed for %s: %s", repopath, err.Error())
 		return nil, fmt.Errorf("hook request failed")
 	}
 	if res.StatusCode != http.StatusOK {
 		// Bad repo path? Unauthorised request?
-		log.Write("hook request for %s returned non-OK exit status: %s", repopath, res.Status)
+		log.ShowWrite("[Error] hook request for %s returned non-OK exit status: %s", repopath, res.Status)
 		return nil, fmt.Errorf("hook request returned non-OK exit status: %s", res.Status)
 	}
 	var gogshooks []gogs.Hook
@@ -419,13 +419,13 @@ func getRepoHooks(cl *ginclient.Client, repopath string) (map[string]ginhook, er
 	b, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		// failed to read response body
-		log.Write("failed to read response for %s", repopath)
+		log.ShowWrite("[Error] failed to read response for %s: %s", repopath, err.Error())
 		return nil, fmt.Errorf("failed to read response")
 	}
 	err = json.Unmarshal(b, &gogshooks)
 	if err != nil {
 		// failed to parse response body
-		log.Write("failed to parse hooks list for %s", repopath)
+		log.ShowWrite("[Error] failed to parse hooks list for %s: %s", repopath, err.Error())
 		return nil, fmt.Errorf("failed to parse hooks list")
 	}
 
@@ -435,16 +435,16 @@ func getRepoHooks(cl *ginclient.Client, repopath string) (map[string]ginhook, er
 		hookurl, err := url.Parse(hook.Config["url"])
 		if err != nil {
 			// can't parse URL. Ignore
-			log.Write("can't parse URL %s", hook.Config["url"])
+			log.ShowWrite("[Error] can't parse URL %s: %s", hook.Config["url"], err.Error())
 			continue
 		}
 		validator, err := matchValidator(hookurl.Path)
 		if err != nil {
 			// Validator not recognised (either path was bad or validator is
 			// not supported). Either way, just continue.
-			log.Write("validator in path not recognised %s (%s)", hookurl.String(), hookurl.Path)
-			log.Write("hook URL in config: %s", hook.Config["url"])
-			log.Write(err.Error())
+			log.ShowWrite("[Error] validator in path not recognised %s (%s)", hookurl.String(), hookurl.Path)
+			log.ShowWrite("[Error] hook URL in config: %s", hook.Config["url"])
+			log.ShowWrite("[Error] %s", err.Error())
 			continue
 		}
 		// Check if Active, and 'push' is in Events
@@ -457,10 +457,10 @@ func getRepoHooks(cl *ginclient.Client, repopath string) (map[string]ginhook, er
 		}
 		var state hookstate
 		if hook.Active && pushenabled {
-			log.Write("found %s hook for %s", validator, repopath)
+			log.ShowWrite("[Info] found %s hook for %s", validator, repopath)
 			state = hookenabled
 		} else {
-			log.Write("found disabled or invalid %s hook for %s", validator, repopath)
+			log.ShowWrite("[Info] found disabled or invalid %s hook for %s", validator, repopath)
 			state = hookdisabled
 		}
 		hooks[validator] = ginhook{validator, hook.ID, state}
@@ -481,7 +481,7 @@ func getRepoHooks(cl *ginclient.Client, repopath string) (map[string]ginhook, er
 func ShowRepo(w http.ResponseWriter, r *http.Request) {
 	ut, err := getSessionOrRedirect(w, r)
 	if err != nil {
-		log.Write("[Info] %s: Redirecting to login", err.Error())
+		log.ShowWrite("[Info] %s: redirecting to login", err.Error())
 		return
 	}
 
@@ -491,14 +491,11 @@ func ShowRepo(w http.ResponseWriter, r *http.Request) {
 	repopath := fmt.Sprintf("%s/%s", user, repo)
 	cl := ginclient.New(serveralias)
 	cl.UserToken = ut
-	fmt.Printf("Requesting repository info %s\n", repopath)
-	fmt.Printf("Server alias: %s\n", serveralias)
-	fmt.Println("Server configuration:")
-	fmt.Println(cl.Host)
+	log.ShowWrite("[Info] server alias %q at %q; repo %q", serveralias, cl.Host, repopath)
 
 	repoinfo, err := cl.GetRepo(repopath)
 	if err != nil {
-		log.ShowWrite("[Error] Repo info failed: %s", err.Error())
+		log.ShowWrite("[Error] repo info failed: %s", err.Error())
 		w.WriteHeader(http.StatusNotFound)
 		_, err = w.Write([]byte("not found"))
 		if err != nil {
@@ -515,13 +512,13 @@ func ShowRepo(w http.ResponseWriter, r *http.Request) {
 	tmpl.Funcs(funcmap)
 	tmpl, err = tmpl.Parse(templates.Layout)
 	if err != nil {
-		log.Write("[Error] failed to parse html layout page")
+		log.ShowWrite("[Error] failed to parse html layout page: %s", err.Error())
 		fail(w, r, http.StatusInternalServerError, "something went wrong")
 		return
 	}
 	tmpl, err = tmpl.Parse(templates.RepoPage)
 	if err != nil {
-		log.Write("[Error] failed to render repository page: %s", err.Error())
+		log.ShowWrite("[Error] failed to render repository page: %s", err.Error())
 		fail(w, r, http.StatusInternalServerError, "something went wrong")
 		return
 	}
