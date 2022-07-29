@@ -25,7 +25,6 @@ import (
 	"github.com/G-Node/gin-valid/internal/resources/templates"
 	gogs "github.com/gogits/go-gogs-client"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 )
 
@@ -342,10 +341,12 @@ func validateODML(valroot, resdir string) error {
 	return nil
 }
 
-func runValidatorBoth(validator, repopath, commit, commitname string, gcl *ginclient.Client, automatic bool) string {
+func runValidator(validator, repopath, commit string, gcl *ginclient.Client) string {
+	checkoutCommit := commit == "HEAD"
+
 	respath := filepath.Join(validator, repopath, commit)
 	go func() {
-		log.ShowWrite("[Info] running %s validation on repository %q (%s)", validator, repopath, commitname)
+		log.ShowWrite("[Info] running %s validation on repository %q (%s)", validator, repopath, commit)
 
 		// TODO add check if a repo is currently being validated. Since the cloning
 		// can potentially take quite some time prohibit running the same
@@ -394,7 +395,7 @@ func runValidatorBoth(validator, repopath, commit, commitname string, gcl *gincl
 			log.ShowWrite("[Error] writing results file for %q", valroot)
 		}
 
-		if automatic { //TODO should be automatic or not?
+		if checkoutCommit {
 			// Link 'latest' to new res dir to show processing
 			latestdir := filepath.Join(filepath.Dir(resdir), "latest")
 			err = os.Remove(latestdir)
@@ -407,7 +408,7 @@ func runValidatorBoth(validator, repopath, commit, commitname string, gcl *gincl
 				log.ShowWrite("[Error] failed to link %q to %q: %s", resdir, latestdir, err.Error())
 			}
 			// create a session for the commit and the current validator;
-			// can lead to unpleasantness when multiple hooks trigger other wise
+			// can lead to unpleasantness when multiple hooks trigger otherwise
 			keyname := fmt.Sprintf("%s-%s", commit, validator)
 			log.ShowWrite("[Info] creating session key %q", keyname)
 			err = makeSessionKey(gcl, keyname)
@@ -435,7 +436,7 @@ func runValidatorBoth(validator, repopath, commit, commitname string, gcl *gincl
 			log.ShowWrite("[Error] initializing log file: %s", err.Error())
 		}
 
-		err = cloneAndGet(gcl, tmpdir, commit, repopath, automatic)
+		err = cloneAndGet(gcl, tmpdir, commit, repopath, checkoutCommit)
 		if err != nil {
 			log.ShowWrite(err.Error())
 			writeValFailure(resdir)
@@ -513,17 +514,6 @@ func cloneAndGet(gcl *ginclient.Client, tmpdir, commit, repopath string, checkou
 	return nil
 }
 
-func runValidator(validator, repopath, commit string, gcl *ginclient.Client) {
-	// change this automatic to a check for "HEAD" vs commit hash in the validator function
-	automatic := true
-	runValidatorBoth(validator, repopath, commit, commit, gcl, automatic)
-}
-
-func runValidatorPub(validator, repopath string, gcl *ginclient.Client) string {
-	automatic := false
-	return runValidatorBoth(validator, repopath, uuid.New().String(), "HEAD", gcl, automatic)
-}
-
 // writeValFailure writes a badge and page content for when a hook payload is
 // valid, but the validator failed to run.  This function does not return
 // anything, but logs all errors.
@@ -599,6 +589,7 @@ func renderValidationForm(w http.ResponseWriter, r *http.Request, errMsg string)
 // PubValidatePost parses the POST data from the root form and calls the
 // validator using the built-in ServiceWaiter.
 func PubValidatePost(w http.ResponseWriter, r *http.Request) {
+	log.ShowWrite("[Info] starting public validation triggered manually")
 	srvcfg := config.Read()
 	ginuser := srvcfg.Settings.GINUser
 
@@ -643,7 +634,8 @@ func PubValidatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respath := runValidatorPub(validator, repopath, gcl)
+	// Run public validation using the latest commit
+	respath := runValidator(validator, repopath, "HEAD", gcl)
 	http.Redirect(w, r, filepath.Join("results", respath), http.StatusFound)
 }
 
@@ -652,7 +644,7 @@ func PubValidatePost(w http.ResponseWriter, r *http.Request) {
 // repository is a valid BIDS dataset.
 // Any cloned files are cleaned up after the check is done.
 func Validate(w http.ResponseWriter, r *http.Request) {
-	log.ShowWrite("[Info] starting validation")
+	log.ShowWrite("[Info] starting validation triggered by hook")
 	// TODO: Simplify/split this function
 	secret := r.Header.Get("X-Gogs-Signature")
 
