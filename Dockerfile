@@ -43,9 +43,8 @@ RUN apk --no-cache --no-progress add \
         py3-tomli \
         py3-pip \
         python3-dev \
-        py3-lxml \
-        py3-h5py \
-        py3-numpy
+        py3-numpy \
+        py3-h5py
 
 # Install the BIDS validator
 RUN npm install -g bids-validator
@@ -63,8 +62,7 @@ COPY ./scripts/odml-validate /bin
 COPY ./resources /resources
 
 # Install NIXPy for NIX validation
-# Use master branch until new beta is released
-RUN pip3 install --no-cache-dir -U git+https://github.com/G-Node/nixpy@master
+RUN pip3 install --no-cache-dir nixio
 
 # Copy git-annex from builder image
 COPY --from=binbuilder /git-annex /git-annex
