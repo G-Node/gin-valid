@@ -379,7 +379,6 @@ func runValidator(validator, repopath, commit string, gcl *ginclient.Client) str
 		_, repo := repopathparts[0], repopathparts[1]
 		valroot := filepath.Join(tmpdir, repo)
 
-		// Enable cleanup once tried and tested
 		defer os.RemoveAll(tmpdir)
 
 		// Add the processing badge and message to display while the validator runs
@@ -396,7 +395,7 @@ func runValidator(validator, repopath, commit string, gcl *ginclient.Client) str
 		}
 
 		if checkoutCommit {
-			// Link 'latest' to new res dir to show processing
+			// Link 'latest' to new results dir to show processing
 			latestdir := filepath.Join(filepath.Dir(resdir), "latest")
 			err = os.Remove(latestdir)
 			if err != nil {
@@ -407,7 +406,7 @@ func runValidator(validator, repopath, commit string, gcl *ginclient.Client) str
 				// Don't return if processing badge write fails but log the issue
 				log.ShowWrite("[Error] failed to link %q to %q: %s", resdir, latestdir, err.Error())
 			}
-			// create a session for the commit and the current validator;
+			// Create a session for the commit and the current validator;
 			// can lead to unpleasantness when multiple hooks trigger otherwise
 			keyname := fmt.Sprintf("%s-%s", commit, validator)
 			log.ShowWrite("[Info] creating session key %q", keyname)
@@ -419,6 +418,12 @@ func runValidator(validator, repopath, commit string, gcl *ginclient.Client) str
 			}
 			defer deleteSessionKey(gcl, keyname)
 		}
+
+		err = glog.Init()
+		if err != nil {
+			log.ShowWrite("[Error] initializing gin client log file: %s", err.Error())
+		}
+
 		// TODO: if (annexed) content is not available yet, wait and retry.  We
 		// would have to set a max timeout for this.  The issue is that when a user
 		// does a 'gin upload' a push happens immediately and the hook is
@@ -428,14 +433,6 @@ func runValidator(validator, repopath, commit string, gcl *ginclient.Client) str
 		// until it's available, with a timeout. We could also make it more
 		// efficient by only downloading the content in the directories which are
 		// specified in the validator config (if it exists).
-
-		err = glog.Init()
-		if err != nil {
-			// Weird to log after an error initializing the log file,
-			// but it should at least write to stdout.
-			log.ShowWrite("[Error] initializing log file: %s", err.Error())
-		}
-
 		err = cloneAndGet(gcl, tmpdir, commit, repopath, checkoutCommit)
 		if err != nil {
 			log.ShowWrite(err.Error())
@@ -455,8 +452,7 @@ func runValidator(validator, repopath, commit string, gcl *ginclient.Client) str
 		}
 
 		if err != nil {
-			// this does not properly log the occurred error; do this here
-			// and refactor the function to include the type of validation that failed
+			log.ShowWrite(err.Error())
 			writeValFailure(resdir)
 		}
 	}()
