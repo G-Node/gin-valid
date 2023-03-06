@@ -42,11 +42,20 @@ jobs:
           go install honnef.co/go/tools/cmd/staticcheck@latest
           staticcheck ./...
         continue-on-error: true
+      - name: staticcheck warning
+        if: steps.composer-run.outcome != 'success'
+        run: echo "- staticcheck encountered issues" >> $GITHUB_STEP_SUMMARY
       - name: Run errcheck
         run: |
           go install github.com/kisielk/errcheck@latest
           errcheck ./...
         continue-on-error: true
+      - name: errcheck warning
+        if: steps.composer-run.outcome != 'success'
+        run: echo "- errcheck encountered issues" >> $GITHUB_STEP_SUMMARY
+      - name: Secondary linter success
+        if: steps.composer-run.outcome == 'success'
+        run: echo "Run successful"
 
   build:
     name: build
