@@ -7,11 +7,10 @@ on:
   pull_request:
     branches:
       - master
-
 jobs:
+  # go vet and go fmt are mandatory.
+  # Other linters are optional but should dispay issues.
   linters:
-    # go vet and go fmt are mandatory.
-    # Other linters are optional but should dispay issues.
     name: Linters
     runs-on: ubuntu-latest
     steps:
@@ -57,24 +56,6 @@ jobs:
         if: steps.composer-run.outcome == 'success'
         run: echo "Run successful"
 
-  build:
-    name: build
-    strategy:
-      matrix:
-        go-version: [1.14.x, 1.15.x, 1.16.x, 1.17.x]
-        platform: [ubuntu-latest]
-    runs-on: ${{ matrix.platform }}
-    steps:
-      - name: Install Go
-        uses: actions/setup-go@v3
-        with:
-          go-version: ${{ matrix.go-version }}
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Run unit tests
-        run: |
-          go mod download github.com/mattn/go-isatty
-          go build ./cmd/ginvalid
   tests:
     runs-on: [ubuntu-latest]
     steps:
@@ -98,6 +79,21 @@ jobs:
         run: go build ./cmd/ginvalid
       - name: Run tests
         run: go test ./...
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Setup go 1.20
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.20'
+      - name: Test build binary
+        run: |
+          go mod download github.com/mattn/go-isatty
+          go build ./cmd/ginvalid
 
   run-coverall:
     runs-on: [ubuntu-latest]
