@@ -1,13 +1,13 @@
 module github.com/G-Node/gin-valid
 
-go 1.17
+go 1.20
 
 require (
 	github.com/G-Node/gin-cli v0.0.0-20190819162807-7786caf50bbd
 	github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815
+	github.com/dustin/go-humanize v1.0.0
 	github.com/gogits/go-gogs-client v0.0.0-20190710002546-4c3c18947c15
 	github.com/gogs/go-gogs-client v0.0.0-20190710002546-4c3c18947c15
-	github.com/google/uuid v1.1.1
 	github.com/gorilla/handlers v1.4.2
 	github.com/gorilla/mux v1.7.3
 	gopkg.in/yaml.v2 v2.2.8
@@ -15,7 +15,6 @@ require (
 
 require (
 	github.com/BurntSushi/toml v0.4.1 // indirect
-	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/fatih/color v1.7.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.7 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
@@ -31,9 +30,9 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.4.0 // indirect
 	github.com/stretchr/testify v1.4.0 // indirect
-	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
-	golang.org/x/sys v0.0.0-20211019181941-9d821ace8654 // indirect
-	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/crypto v0.1.0 // indirect
+	golang.org/x/sys v0.1.0 // indirect
+	golang.org/x/text v0.4.0 // indirect
 )
 
 replace (
