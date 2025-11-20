@@ -1,6 +1,6 @@
 module github.com/G-Node/gin-valid
 
-go 1.20
+go 1.24.0
 
 require (
 	github.com/G-Node/gin-cli v0.0.0-20190819162807-7786caf50bbd
@@ -30,9 +30,9 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.4.0 // indirect
 	github.com/stretchr/testify v1.4.0 // indirect
-	golang.org/x/crypto v0.31.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/crypto v0.45.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/text v0.31.0 // indirect
 )
 
 replace (
